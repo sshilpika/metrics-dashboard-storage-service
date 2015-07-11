@@ -83,7 +83,9 @@ trait CommitDensityService extends HttpService{
 
       //setting up mongo client
      // println("MONGO CLIENT")
-      val mongoClient = MongoClient("localhost", 27017)
+      val mongoClient1 = MongoClient("localhost", 27017)
+      var uri = MongoClientURI("mongodb://heroku_r7px9z20:3abv0h3itskhvpiumtfmi2e5d6@ds045882.mongolab.com:45882/heroku_r7px9z20")
+      val mongoClient =  MongoClient(uri)
       val db = mongoClient(reponame)
       val collName = LocalDateTime.ofInstant(sdf.parse(since).toInstant,ZoneId.of("UTC")).getDayOfYear
       val coll = db("COLL"+collName)
