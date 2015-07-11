@@ -1,0 +1,1 @@
+web: target/universal/stage/bin/metrics-dashboard-storage-service
