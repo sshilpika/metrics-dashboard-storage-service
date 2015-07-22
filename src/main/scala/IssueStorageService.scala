@@ -73,7 +73,7 @@ object IssuesStorage{
         val id = commits.asJsObject.getFields("id")(0).compactPrint.replaceAll("\"","")
         val title = commits.asJsObject.getFields("title")(0).compactPrint.replaceAll("\"","")
         val body = commits.asJsObject.getFields("body")(0).compactPrint.replaceAll("\"","")
-        coll.insert(MongoDBObject("id" -> id, "url"-> url, "date" -> createdAt, "number"-> number, "state" -> state, "title" -> title, "body" -> body))
+        coll.update(MongoDBObject("id" -> id),$set("id" -> id, "url"-> url, "date" -> createdAt, "number"-> number, "state" -> state, "title" -> title, "body" -> body),true,true)
 
       })
 
