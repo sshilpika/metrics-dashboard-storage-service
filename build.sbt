@@ -4,6 +4,8 @@ version := "1.0"
 
 scalaVersion := "2.11.7"
 
+resolvers += "Typesafe repository releases" at "http://repo.typesafe.com/typesafe/releases/"
+
 libraryDependencies ++= {
   val akkaV = "2.3.6"
   val sprayV = "1.3.2"
