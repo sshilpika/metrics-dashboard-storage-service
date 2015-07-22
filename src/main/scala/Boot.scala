@@ -8,11 +8,11 @@ import spray.can.Http
 import concurrent.duration._
 import util.Properties
 
-object Boot extends App{
+object Boot/* extends App*/{
 
-  implicit val system = ActorSystem("gitCommitDensity")
+  /*implicit val system = ActorSystem("gitCommitDensity")
   val service = system.actorOf(Props[MyServiceActor],"git-file-commit-density")
   implicit val timeout = Timeout(60.seconds)
   val port = Properties.envOrElse("PORT","8080").toInt
-  IO(Http) ? Http.Bind(service,interface = "0.0.0.0", port = port)
+  IO(Http) ? Http.Bind(service,interface = "0.0.0.0", port = port)*/
 }
