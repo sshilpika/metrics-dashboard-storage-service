@@ -79,7 +79,7 @@ object CommitUrl{
         coll.update(MongoDBObject("date" -> date),$set("url"-> url, "date" -> date),true,true)
 
       })
-      Thread.sleep(20000)
+      //Thread.sleep(20000)
       //the url for next page of commits
       println("nextUrlForCurrentWeek: "+nextUrlForCurrentWeek)
       nextUrlForCurrentWeek

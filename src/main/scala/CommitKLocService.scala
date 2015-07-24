@@ -121,7 +121,7 @@ object CommitURLService {
             val collectionName = filename.replaceAll("/", "_").replaceAll("\\.", "_")
             val collection = db.collection[BSONCollection](collectionName)
             // cursor might throw exception
-            println("dates"+date)
+            //println("dates"+date)
             val selector = BSONDocument("date" -> date)
             val modifier = BSONDocument("$set" -> BSONDocument("date" -> date, "commitSha" -> commitSha.compactPrint,
               "loc" -> loc, "filename" -> filename, "fileSha" -> fileSha.compactPrint))
@@ -191,7 +191,9 @@ object KlocCollection extends App{
             }
             Await.result(f1,1 hour)
             println("BEFORE NEXT CALL")
-            if(urlList.length >5000 && rateVal >1000)
+            if (urlLis.length < 1000 && (z.indexOf(urlLis) != z.length-1)){
+              Thread.sleep(60*60*1000)
+            } else if(urlLis.length ==1000 && (z.indexOf(urlLis) != z.length-1))
             Thread.sleep(15*60*1000)
             println("NEXT CALL")
           }))
