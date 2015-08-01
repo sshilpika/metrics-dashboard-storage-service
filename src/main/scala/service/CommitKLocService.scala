@@ -1,7 +1,6 @@
 package edu.luc.cs.metrics.ingestion.service
 
 import java.time._
-
 import akka.event.Logging
 import reactivemongo.api.collections.bson.BSONCollection
 import reactivemongo.bson.{BSONDocument, BSONDocumentReader}

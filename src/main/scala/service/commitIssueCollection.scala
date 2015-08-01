@@ -10,7 +10,7 @@ import scala.concurrent.Future
  */
 
 
-object commitIssueCollection extends IngestionStrategy with Ingestion {
+object commitIssueCollection extends ingestionStrategy with Ingestion {
 
   def apply(user: String, repo: String, branch: String, metricType: String, accessToken: Option[String], page: Option[String]): Future[String] = {
 

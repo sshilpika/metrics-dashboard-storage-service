@@ -35,7 +35,7 @@ trait Ingestion {
 
 }
 
-trait IngestionStrategy{
+trait ingestionStrategy{
 
   def mongoCasbah(dbName:String) = mongoClientCasbah(dbName)
 

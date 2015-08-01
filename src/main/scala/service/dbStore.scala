@@ -1,8 +1,6 @@
 package edu.luc.cs.metrics.ingestion.service
 
 import java.time.{ZoneId, Instant, ZonedDateTime}
-
-import com.github.nscala_time.time.TypeImports
 import com.mongodb.casbah.Imports._
 import spray.json.JsValue
 
