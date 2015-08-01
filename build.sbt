@@ -20,7 +20,9 @@ libraryDependencies ++= {
     "com.typesafe.akka"   %%  "akka-testkit"  % akkaV   % Test,
     "org.specs2"          %%  "specs2-core"   % "2.3.11" % Test,
     "org.mongodb" %% "casbah" % "2.8.1",
-    "org.reactivemongo" %% "reactivemongo" % "0.11.2"
+    "org.reactivemongo" %% "reactivemongo" % "0.11.2",
+    "org.apache.spark" % "spark-core_2.10" % "1.4.1"
+
   )
 }
 
