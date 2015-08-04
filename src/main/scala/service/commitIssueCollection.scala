@@ -12,13 +12,30 @@ import scala.concurrent.Future
 
 object commitIssueCollection extends ingestionStrategy with Ingestion {
 
-  def apply(user: String, repo: String, branch: String, metricType: String, accessToken: Option[String], page: Option[String]): Future[String] = {
+  def apply(user: String, repo: String, branch: String, metricType: String, accessToken: Option[String], path:String, page: Option[String]): Future[String] = {
 
     metricType match {
 
+      case "FilePaths" =>
+        val repoFilePathsFuture = getHttpResponse(url("https://api.github.com/repos/"+user+"/"+repo+"/git/trees/"+branch+"?recursive=1", None),rawHeaderList(accessToken), 60.seconds)
+
+        repoFilePathsFuture.flatMap(repoFilePaths => {
+          Future.sequence(repoFilePaths.entity.data.asString.parseJson.asJsObject.getFields("tree").flatMap{
+            trees =>
+              trees.convertTo[List[JsValue]].filter {
+                tree => // filter out blobs
+                  tree.asJsObject.fields.values.toList.map(_ compactPrint).contains("\"blob\"")
+              } map {
+                blob => blob.asJsObject.getFields("path")(0).compactPrint.replaceAll("\"","")
+              }
+          } map(path => this.apply(user, repo, branch, "Commits", accessToken, path, None))) map(_.toString)
+        })
+
+
       case "Commits" =>
         //implicit val timeout = timeout(60.seconds)
-        val gitFileCommitList = getHttpResponse(url("https://api.github.com/repos/"+user+"/"+repo+"/commits?sha="+branch, page), rawHeaderList(accessToken),60.seconds)
+
+        val gitFileCommitList = getHttpResponse(url("https://api.github.com/repos/"+user+"/"+repo+"/commits?sha="+branch+"&path="+path, page), rawHeaderList(accessToken),60.seconds)
 
         gitFileCommitList.map(gitList => {
           rateLimitCheck(gitList)
@@ -28,7 +45,7 @@ object commitIssueCollection extends ingestionStrategy with Ingestion {
           println("nextUrlForCurrentWeek: "+getNextPage(gitList))
           getNextPage(gitList)
         }) flatMap(nextUrl => nextUrl.map(page =>{
-          this.apply(user,repo,branch,metricType,accessToken,Option(page))
+          this.apply(user,repo,branch,"Commits",accessToken, path, Option(page))
         }).getOrElse(Future("")))
 
 
@@ -44,7 +61,7 @@ object commitIssueCollection extends ingestionStrategy with Ingestion {
           println("nextUrlForCurrentWeek: "+getNextPage(issueList))
           getNextPage(issueList)
         }) flatMap(nextUrl => nextUrl.map(page =>{
-          this.apply(user,repo,branch,metricType,accessToken,Option(page))
+          this.apply(user,repo,branch,metricType,accessToken,"",Option(page))
         }).getOrElse(Future("")))
     }
 
