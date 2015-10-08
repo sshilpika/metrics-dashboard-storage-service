@@ -39,6 +39,24 @@ trait ingestionStrategy{
 
   def mongoCasbah(dbName:String) = mongoClientCasbah(dbName)
 
+  def getNextPageTemp(gitList: HttpResponse): Option[String] = {
+    println("This is a list of headers:")
+    val link = gitList.headers.filter(x => x.name.equals("Link"))
+    gitList.headers.map(x => println(x.name + "!!!!!!!!!!!!!!!!" + x.value))
+    println(link)
+    val nextUrlForCurrentWeek = if (!link.isEmpty)
+      Option(link(0)).flatMap(x => {
+        val i = x.value.indexOf("page=")
+        val j = x.value.indexOf("<http")+1
+        val page = x.value.substring(i).split(">")(0)
+        val y = page.length
+        val urlC = x.value.substring(j,i+y)
+        if (page.equals("page=1")) None else Some(urlC)
+      })
+    else None
+    nextUrlForCurrentWeek
+  }
+
   def getNextPage(gitList: HttpResponse): Option[String] = {
     println("This is a list of headers:")
     val link = gitList.headers.filter(x => x.name.equals("Link"))
@@ -46,7 +64,7 @@ trait ingestionStrategy{
     println(link)
     val nextUrlForCurrentWeek = if (!link.isEmpty)
       Option(link(0)).flatMap(x => {
-        val i = x.value.indexOf("page")
+        val i = x.value.indexOf("page=")
         val page = x.value.substring(i).split(">")(0)
         if (page.equals("page=1")) None else Some(page)
       })
@@ -54,17 +72,18 @@ trait ingestionStrategy{
     nextUrlForCurrentWeek
   }
 
-  def rateLimitCheck(gitList: HttpResponse): Unit = {
+  def rateLimitCheck(gitList: HttpResponse): Int = {
     val rateTime = gitList.headers.filter(x => x.name.equals("X-RateLimit-Reset"))(0).value
-    val rateRemaining = gitList.headers.filter(x => x.name.equals("X-RateLimit-Remaining"))(0).value
+    val rateRemaining = gitList.headers.filter(x => x.name.equals("X-RateLimit-Remaining"))(0).value.toInt
     val inst = Instant.ofEpochSecond(rateTime.toLong)
     if (rateRemaining == 0) {
       println("Sleeping Rate Limit = 0")
       Thread.sleep(inst.toEpochMilli)
-    }
-    else if (rateRemaining.toInt % 1000 == 0) {
+      rateRemaining
+    } else if (rateRemaining % 1000 == 0) {
       Thread.sleep(60000)
-    }
+      rateRemaining
+    }else -1
   }
 
 

@@ -15,13 +15,14 @@ object Boot extends App{
     println("Enter 1 or 2 to choose one from the options below:\n1. Issues\n2. Commits\n")
     choice = lines.next()
   }while(!choice.equals("1") && !choice.equals("2"))
-  val metricType = if(choice.toInt ==1) "Issues" else "FilePaths"
+
+  val metricType = if(choice.toInt ==1) "Issues" else "Commits"
 
   println("\nEnter username/reponame/branchname")
   val input = lines.next().split("/")
 
   println(s"You entered: \nUsername: ${input(0)} \nReponame: ${input(1)} \nBranchname: ${input(2)}\n")
-  val f = commitIssueCollection(input(0), input(1), input(2),metricType, Option(accessToken),"", None)
+  val f = commitIssueCollection(input(0), input(1), input(2),metricType, Option(accessToken),None, None,"")
 
   println("Ingestion Service started")
 
@@ -58,7 +59,9 @@ object Boot extends App{
                   } else if (urlLis.length == 1000 && (urlListGroups.indexOf(urlLis) != urlListGroups.length - 1))
                     Thread.sleep(15 * 60 * 1000)
                 })
-                val f3 = CommitKLocService.sortLoc(input(0), input(1), input(2), Option(accessToken))
+                CommitKLocService.sortLoc(input(0), input(1), input(2), Option(accessToken))
+                println("KLOC sorted")
+                /*val f3 = CommitKLocService.sortLoc(input(0), input(1), input(2), Option(accessToken))
                 f3.onComplete {
                   case Success(v) => println("Loc done!")
                     //actorsys.shutdown()
@@ -66,7 +69,7 @@ object Boot extends App{
                     v.printStackTrace()
                     actorsys.shutdown()
                 }
-                Await.result(f3, 15 minutes)
+                Await.result(f3, 1 hour)*/
               case Failure(rateError) => println("rate retrieval failed:" + rateError)
                 rateError.printStackTrace()
                 actorsys.shutdown()

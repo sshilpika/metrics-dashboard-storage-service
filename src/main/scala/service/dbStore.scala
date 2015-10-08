@@ -12,19 +12,21 @@ object dbStore {
   def apply(s: Metric): String = s match {
     case Issues(issueList: List[JsValue], db : MongoDB) =>
       issueList.map(commits => {
-      val createdAt = commits.asJsObject.getFields("created_at")(0).compactPrint.replaceAll("\"", "")
-      val ldt = ZonedDateTime.ofInstant(Instant.parse(createdAt),ZoneId.of("UTC"))
-      val start_date = Instant.parse(createdAt).minus(java.time.Duration.ofDays(ldt.getDayOfWeek.getValue-1))
-      val since = ZonedDateTime.ofInstant(start_date,ZoneId.of("UTC"))
-      val coll = db("COLL"+ldt.getYear+"ISSUE"+since.getDayOfYear)
-      val url = commits.asJsObject.getFields("url")(0).compactPrint.replaceAll("\"","")
-      val number = commits.asJsObject.getFields("number")(0).compactPrint.replaceAll("\"","")
-      val state = commits.asJsObject.getFields("state")(0).compactPrint.replaceAll("\"","")
-      val id = commits.asJsObject.getFields("id")(0).compactPrint.replaceAll("\"","")
-      val title = commits.asJsObject.getFields("title")(0).compactPrint.replaceAll("\"","")
-      val body = commits.asJsObject.getFields("body")(0).compactPrint.replaceAll("\"","")
-      coll.update(MongoDBObject("id" -> id),$set("id" -> id, "url"-> url, "date" -> createdAt,
-        "number"-> number, "state" -> state, "title" -> title, "body" -> body),true,true)
+        val createdAt = commits.asJsObject.getFields("created_at")(0).compactPrint.replaceAll("\"", "")
+        val ldt = ZonedDateTime.ofInstant(Instant.parse(createdAt),ZoneId.of("UTC"))
+        val start_date = Instant.parse(createdAt).minus(java.time.Duration.ofDays(ldt.getDayOfWeek.getValue-1))
+        val since = ZonedDateTime.ofInstant(start_date,ZoneId.of("UTC"))
+        val coll = db("COLL"+ldt.getYear+"ISSUE"+since.getDayOfYear)
+        val url = commits.asJsObject.getFields("url")(0).compactPrint.replaceAll("\"","")
+        val number = commits.asJsObject.getFields("number")(0).compactPrint.replaceAll("\"","")
+        val state = commits.asJsObject.getFields("state")(0).compactPrint.replaceAll("\"","")
+        val closed_at = commits.asJsObject.getFields("closed_at")(0).compactPrint.replaceAll("\"","")
+        val created_at = commits.asJsObject.getFields("created_at")(0).compactPrint.replaceAll("\"","")
+        val id = commits.asJsObject.getFields("id")(0).compactPrint.replaceAll("\"","")
+        val title = commits.asJsObject.getFields("title")(0).compactPrint.replaceAll("\"","")
+        val body = commits.asJsObject.getFields("body")(0).compactPrint.replaceAll("\"","")
+        coll.update(MongoDBObject("id" -> id),$set("id" -> id, "url"-> url, "date" -> createdAt,
+          "number"-> number, "state" -> state, "title" -> title, "body" -> body, "closed_at" -> closed_at, "created_at" ->created_at ),true,true)
 
     })
       "Issues Stored"
