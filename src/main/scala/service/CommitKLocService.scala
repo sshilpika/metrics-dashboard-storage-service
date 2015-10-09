@@ -71,7 +71,7 @@ object CommitKLocService extends Ingestion with CommitKlocIngestion{
       val gitFileCommitList = getHttpResponse(url,rawHeaderList(accessToken),1 hour)
 
       gitFileCommitList.map(commit => {
-          println("This is what I got from Github $$$$%% "+commit.entity.data.asString)
+          println("This is what I got from Github $$$$%% "+commit.entity.data.asString.substring(1,100))
           val filesList = commit.entity.data.asString.parseJson.asJsObject.getFields("commit", "files")
           val commitSha = commit.entity.data.asString.parseJson.asJsObject.getFields("sha")(0)
           val date = filesList(0).asJsObject.getFields("committer")(0).asJsObject.getFields("date")(0).compactPrint.replaceAll("\"", "")

@@ -39,7 +39,52 @@ object Boot extends App{
             rate.onComplete {
               case Success(rateVal) =>
                 //grouping the urlLists to avoid Github rate limit abuse
-                val urlListGroups = groupListByRateLimit(urlList, rateVal)
+                val tokens_needed = urlList.length/5000.0
+                if(tokens_needed<= 6 ){
+
+                 val urlGroups =  groupUrlList(urlList)
+                  //val urlListGroups = groupListByRateLimit(urlList, rateVal)
+                  //Storing the loc info here call is made using groups of url
+                  val stack = scala.collection.mutable.Stack[String]()
+                  more_tokens.flatMap(x => stack.push(x))
+                  var access_token:String = stack.pop
+
+                  urlGroups map(urlLis => {
+                    println(urlLis.length + " length of inner List")
+                    val index = urlGroups.indexOf(urlLis)
+                    //val access_token_temp = access_token
+                    println("The index is:"+index)
+                    if((index+1) % 5 == 0 ){
+                      println("switching tokens! "+index)
+                      access_token = stack.pop
+                    }
+                    println("INDEX????"+index+"ACCESS TOKEN?????"+access_token)
+                    val f2 = CommitKLocService.storeCommitKlocInfo(input(0), input(1), input(2), Option(access_token.toString), urlLis)
+                    f2.onComplete {
+                      case Success(value) => println(s"Successfully stored commit information for ${value.length} files")
+                      case Failure(value) => println("Kloc storage failed with message: ")
+                        value.printStackTrace()
+                        actorsys.shutdown()
+                    }
+
+                    Await.result(f2, 1 hour) // wait for result from storing commit KLOC information
+
+                    println("Thread sleep before next call")
+                    Thread.sleep(2 * 60*1000)
+                    /*if (urlLis.length < 1000 && (urlListGroups.indexOf(urlLis) != urlListGroups.length - 1)) {
+                      Thread.sleep(60 * 60 * 1000)
+                    } else if (urlLis.length == 1000 && (urlListGroups.indexOf(urlLis) != urlListGroups.length - 1))
+                      Thread.sleep(15 * 60 * 1000)*/
+                  })
+                  CommitKLocService.sortLoc(input(0), input(1), input(2), Option(accessToken))
+                  println("KLOC sorted")
+
+
+
+                }else{
+                  println("URL LIST is > 30,000")
+                }
+                /*val urlListGroups = groupListByRateLimit(urlList, rateVal)
                 //Storing the loc info here call is made using groups of url
                 urlListGroups map(urlLis => {
                   println(urlLis.length + " length of inner List")
@@ -60,7 +105,7 @@ object Boot extends App{
                     Thread.sleep(15 * 60 * 1000)
                 })
                 CommitKLocService.sortLoc(input(0), input(1), input(2), Option(accessToken))
-                println("KLOC sorted")
+                println("KLOC sorted")*/
                 /*val f3 = CommitKLocService.sortLoc(input(0), input(1), input(2), Option(accessToken))
                 f3.onComplete {
                   case Success(v) => println("Loc done!")
@@ -82,6 +127,11 @@ object Boot extends App{
       }
     case Failure(value) => println("Ingestion Failed with message: "+value)
       actorsys.shutdown()
+  }
+
+  def groupUrlList(urlList:List[String]):List[List[String]]= {
+
+    urlList.grouped(950).toList
   }
 
   def groupListByRateLimit(urlList: List[String], rateVal: Int): List[List[String]] = {
