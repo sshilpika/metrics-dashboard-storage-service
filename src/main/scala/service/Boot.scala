@@ -40,7 +40,7 @@ object Boot extends App{
               case Success(rateVal) =>
                 //grouping the urlLists to avoid Github rate limit abuse
                 val tokens_needed = urlList.length/5000.0
-                if(tokens_needed<= 6 ){
+                if(tokens_needed<= 12 ){
 
                  val urlGroups =  groupUrlList(urlList)
                   //val urlListGroups = groupListByRateLimit(urlList, rateVal)
