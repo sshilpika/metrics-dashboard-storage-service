@@ -18,7 +18,7 @@ object Boot extends App{
 
   val metricType = if(choice.toInt ==1) "Issues" else "Commits"
 
-  println("\nEnter username/reponame/branchname")
+  println("\nEnter username/reponame/branchname/groupBy")
   val input = lines.next().split("/")
 
   println(s"You entered: \nUsername: ${input(0)} \nReponame: ${input(1)} \nBranchname: ${input(2)}\n")
@@ -71,50 +71,14 @@ object Boot extends App{
 
                     println("Thread sleep before next call")
                     Thread.sleep(2 * 60*1000)
-                    /*if (urlLis.length < 1000 && (urlListGroups.indexOf(urlLis) != urlListGroups.length - 1)) {
-                      Thread.sleep(60 * 60 * 1000)
-                    } else if (urlLis.length == 1000 && (urlListGroups.indexOf(urlLis) != urlListGroups.length - 1))
-                      Thread.sleep(15 * 60 * 1000)*/
+
                   })
                   CommitKLocService.sortLoc(input(0), input(1), input(2), Option(accessToken))
-                  println("KLOC sorted")
-
-
+                  CommitDensityService.dataForDefectDensity(input(0), input(1), input(2), input(3))
 
                 }else{
                   println("URL LIST is > 30,000")
                 }
-                /*val urlListGroups = groupListByRateLimit(urlList, rateVal)
-                //Storing the loc info here call is made using groups of url
-                urlListGroups map(urlLis => {
-                  println(urlLis.length + " length of inner List")
-                  val f2 = CommitKLocService.storeCommitKlocInfo(input(0), input(1), input(2), Option(accessToken), urlLis)
-                  f2.onComplete {
-                    case Success(value) => println(s"Successfully stored commit information for ${value.length} files")
-                    case Failure(value) => println("Kloc storage failed with message: ")
-                      value.printStackTrace()
-                      actorsys.shutdown()
-                  }
-
-                  Await.result(f2, 1 hour) // wait for result from storing commit KLOC information
-
-                  println("Thread sleep before next call")
-                  if (urlLis.length < 1000 && (urlListGroups.indexOf(urlLis) != urlListGroups.length - 1)) {
-                    Thread.sleep(60 * 60 * 1000)
-                  } else if (urlLis.length == 1000 && (urlListGroups.indexOf(urlLis) != urlListGroups.length - 1))
-                    Thread.sleep(15 * 60 * 1000)
-                })
-                CommitKLocService.sortLoc(input(0), input(1), input(2), Option(accessToken))
-                println("KLOC sorted")*/
-                /*val f3 = CommitKLocService.sortLoc(input(0), input(1), input(2), Option(accessToken))
-                f3.onComplete {
-                  case Success(v) => println("Loc done!")
-                    //actorsys.shutdown()
-                  case Failure(v) => println("Loc and range calculations failed")
-                    v.printStackTrace()
-                    actorsys.shutdown()
-                }
-                Await.result(f3, 1 hour)*/
               case Failure(rateError) => println("rate retrieval failed:" + rateError)
                 rateError.printStackTrace()
                 actorsys.shutdown()

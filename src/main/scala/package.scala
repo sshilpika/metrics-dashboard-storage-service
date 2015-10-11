@@ -17,11 +17,14 @@ object `package` {
   implicit val actorsys = ActorSystem("gitDefectDensity")
   val log = Logging(actorsys, getClass)
   // Database Connection through Casbah
-  val mongoClientCasbah = MongoClient("localhost", 27017)
+  val mongoClientCasbah1 = MongoClient("localhost", 27017)
 
   // Reactive Mongo
   import reactivemongo.api._
   val driver = new MongoDriver
   val connection = driver.connection(List("localhost"))
+
+  val mongoDriver = new MongoDriver
+  val mongoConnection = mongoDriver.connection(List("localhost"))
 
 }

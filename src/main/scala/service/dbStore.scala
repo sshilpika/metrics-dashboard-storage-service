@@ -45,6 +45,15 @@ object dbStore {
 
     })
       "Commits Url Stored"
+
+    case DefectDensity(defectDensityResult: JsValue, db: MongoDB) =>
+
+
+        val coll = db("system_indexes_defect_density")
+        coll.update(MongoDBObject("id" -> "1"),$set("defectDensity" -> defectDensityResult.compactPrint),true,true)
+        //coll.insert(MongoDBObject("defectDensity" -> defectDensityResult.compactPrint))
+
+      "Defect Density Stored"
   }
 
 }

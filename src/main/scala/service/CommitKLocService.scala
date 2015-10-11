@@ -88,7 +88,7 @@ object CommitKLocService extends Ingestion with CommitKlocIngestion{
             else
               fname
 
-            val collection = /*db(collectionName)*/db.collection[BSONCollection](collectionName)
+            val collection = db.collection[BSONCollection](collectionName)
             // cursor might throw exception
             val selector = BSONDocument("date" -> date)
             val modifier = BSONDocument("$set" -> BSONDocument("date" -> date, "commitSha" -> commitSha.compactPrint,
@@ -113,7 +113,6 @@ object CommitKLocService extends Ingestion with CommitKlocIngestion{
     val colls = db.collectionNames filter(!_.equals("system.indexes")) //map(_.filter(!_.equals("system.indexes")))
       colls.toList flatMap(collName => {
         val col = db(collName)
-        //println(collName+" $$$$$"+col)
         val newCommitLocLis = col.find().sort(MongoDBObject("date" -> 1)).toList.scanLeft(CommitsLoc(0,"","",0L)){(a,x) =>
 
           CommitsLoc(a.loc+x.getAs[Int]("loc").get,x.getAs[String]("date").get,x.getAs[String]("filename").get,x.getAs[Long]("rangeLoc").getOrElse(0))}.tail
@@ -131,48 +130,8 @@ object CommitKLocService extends Ingestion with CommitKlocIngestion{
           col.update(selector, modifier,true,true)
         })
         newCommitLocLis
-          //.scanLeft(CommitsLoc(0,"","",0L)){(a,c) => CommitsLoc(a.loc+c.loc,c.date,c.filename,c.rangeLoc)}.tail
-      })//.map(_.flatten)
-    /*val db1 = reactiveMongoDb(user+"_"+repo+"_"+branch)
-    db1.collectionNames filter(!_.equals("system.indexes")) flatMap(p =>
-      //res1 gets data from the DB and saves it in a list of (commitDate, LOC, weekStartDate, weekEndDate)
-      Future.sequence(p.map(collName => {
-        val collection = db1.collection[BSONCollection](collName)
-        println("Looking at "+collName)
-        val a = collection.find(BSONDocument())
-        val b = a.sort(BSONDocument("date" -> 1))
-        val c = b.cursor[CommitsLoc]
+      })
 
-        val collectionsListSorted = c.collect[List]()
-        collectionsListSorted.map(p1 =>{
-          //calculating the incremental Loc per file
-          val newCommitLocLis = p1.scanLeft(CommitsLoc(0,"","",0L)){(a,c) => CommitsLoc(a.loc+c.loc,c.date,c.filename,c.rangeLoc)}.tail
-          //println(newCommitLocLis)
-          val updatedRes =  newCommitLocLis.map(commitLoc =>{
-            val selector = BSONDocument("date" -> commitLoc.date)
-           // println("COMMIT LOC:"+commitLoc.loc)
-            val modifier = BSONDocument(
-              "$set" -> BSONDocument(
-                "loc" -> commitLoc.loc))
-            collection.update(selector, modifier)
-          })
-          val rangeStoreFuture = Future.sequence(updatedRes).flatMap(x =>{
-            val l2 = newCommitLocLis.zip(newCommitLocLis.tail:+newCommitLocLis(newCommitLocLis.length-1))
-            Future.sequence(l2.map(x => {
-              val ldt = ZonedDateTime.ofInstant(Instant.parse(x._2.date),ZoneId.of("UTC"))
-              val range = java.time.Duration.between(Instant.parse(x._1.date),Instant.parse(x._2.date)).toMillis/1000
-              val selector = BSONDocument("date" -> x._1.date)
-              val modifier = BSONDocument(
-                "$set" -> BSONDocument(
-                  "rangeLoc" -> range))
-              collection.update(selector, modifier)
-            }))})
-          Await.result(rangeStoreFuture,1 hour)
-          newCommitLocLis
-        })
-        //collectionsListSorted map(x => x.map(y => println(y.filename)))
-        collectionsListSorted
-      })).map(_.flatten))*/
   }
 
 }

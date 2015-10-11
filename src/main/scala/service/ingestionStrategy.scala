@@ -19,6 +19,7 @@ import concurrent.ExecutionContext.Implicits._
 sealed trait Metric
 case class Issues(issuesList:List[JsValue], db: MongoDB) extends Metric
 case class Commits(commitList:List[JsValue], db: MongoDB) extends Metric
+case class DefectDensity(commitList:JsValue, db: MongoDB) extends Metric
 
 trait Ingestion {
   def timeout(time: FiniteDuration): Timeout  = Timeout(time)
@@ -37,7 +38,8 @@ trait Ingestion {
 
 trait ingestionStrategy{
 
-  def mongoCasbah(dbName:String) = mongoClientCasbah(dbName)
+  def mongoCasbah(dbName:String) = mongoClientCasbah1(dbName)
+  def mongoConnectionClose = mongoClientCasbah1.close()
 
   def getNextPageTemp(gitList: HttpResponse): Option[String] = {
     println("This is a list of headers:")

@@ -1,4 +1,4 @@
-//package edu.luc.cs.metrics.ingestion.service
+package edu.luc.cs.metrics.ingestion.service
 
 import akka.util.Timeout
 import edu.luc.cs.metrics.ingestion.service.CommitKLocService
@@ -13,44 +13,23 @@ import concurrent.ExecutionContext.Implicits._
  */
 object TestObj {
   def main(args: Array[String]) {
-    /*val f = CommitKLocService.getMongoUrl("django","django","master", Option(accessToken))
-    f.onComplete{
-      case Success(v) => println(v.length+" is the number of commits")
-      case Failure(v) => println("FAILED")
-    }
-    Await.result(f,1000 seconds)*/
+
+    println("\nEnter username/reponame/branchname/groupBy")
+    val lines = scala.io.Source.stdin.getLines
+    val input = lines.next().split("/")
+
+    println(s"You entered: \nUsername: ${input(0)} \nReponame: ${input(1)} \nBranchname: ${input(2)}\n")
     val timeout = Timeout(1 hour)
-    val f3 = CommitKLocService.sortLoc("Abjad","abjad","master", Option(accessToken))
-    println("Done"+f3.length)
-    /*f3.onComplete {
-      case Success(v) => println("Loc done!"+v.length)
-      actorsys.shutdown()
+    val resultF = CommitDensityService.dataForDefectDensity(input(0), input(1), input(2), input(3))
+
+    resultF.onComplete {
+      case Success(v) => println("Loc done!"+v.compactPrint)
+       // actorsys.shutdown()
       case Failure(v) => println("Loc and range calculations failed")
         v.printStackTrace()
         actorsys.shutdown()
     }
-    Await.ready(f3, 15 minutes)*/
-    /*val inputFile = args(0)
-    val outputFile = args(1)
-    val conf = new SparkConf().setMaster("local").setAppName("Word Count")
-    val sc = new SparkContext(conf)
-
-    val input = sc.textFile(inputFile)
-    val words = input.flatMap(line => line.split(" "))
-    val counts = words.map(word => (word, 1)).reduceByKey { case (x, y) => {
-      println(x + " " + y); x + y
-    }
-    }
-    println("COUNTS:")
-    counts.saveAsTextFile("counts.txt")
-    /**/def storeCommitInfo(ingestStrategy: IngestionStrategy, page: Option[String]): Future[String]={
-
-    implicit val timeout = ingestStrategy.timeout
-    ingestStrategy.rawHeaderList
-    val url = if(page.isDefined){
-      new URL(ingestStrategy.url,page.get} else "https://api.github.com/repos/"+user+"/"+repo+"/issues"
-
-  }*/
+    Await.result(resultF,1 hour)
   }
 
 }
