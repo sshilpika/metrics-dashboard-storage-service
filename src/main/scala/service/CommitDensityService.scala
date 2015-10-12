@@ -119,8 +119,19 @@ object CommitDensityService extends ingestionStrategy{
 
       })).map(_.flatten)
       res.map(p => {
-        val x = p/*.map(_.toIterable)*/.toIterable.flatten.groupBy(y => y._1)
-        x.toIterable.map(y => (y._1,y._2.foldLeft((Instant.now(),0.0D,(0,0)):(Instant,Double,(Int,Int))){(acc,z) => (z._2._1,z._2._2,(z._2._3._1+acc._3._1,z._2._3._2+acc._3._2))}))
+        /*val x =*/ p/*.map(_.toIterable)*/.toIterable.flatten.foldLeft(Nil: Iterable[(Instant,(Instant,Double,(Int,Int)))]){(i,res) => {
+          val b = i.toIterator.duplicate
+          val Iterelem = b._1.filter(_._1 == res._1)
+          val elem = Iterelem.toList
+          if(!elem.isEmpty){
+            val res1 = (res._1,(res._2._1,res._2._2,(res._2._3._1+elem(0)._2._3._1,res._2._3._2+elem(0)._2._3._2)))
+            (b._2 ++ List(res1).toIterator).toIterable
+          }else{
+            (b._2 ++ List(res).toIterable).toIterable
+          }
+
+        }}//groupBy(y => y._1)
+        //x.toIterable.map(y => (y._1,y._2.foldLeft((Instant.now(),0.0D,(0,0)):(Instant,Double,(Int,Int))){(acc,z) => (z._2._1,z._2._2,(z._2._3._1+acc._3._1,z._2._3._2+acc._3._2))}))
       })
     })
     val jsonifyRes = finalRes.map(_.map(y => {
