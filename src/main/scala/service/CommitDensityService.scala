@@ -74,7 +74,7 @@ object CommitDensityService extends ingestionStrategy{
     val collection = db.collectionNames
     val timeout = Timeout(1 hour)
     val finalRes = collection.map(_.filter(!_.contains("system.indexes"))) flatMap(p =>{
-
+      println(p.length+"No of collections")
       val res = Future.sequence(p.map(collName => {
         val coll = db.collection[BSONCollection](collName)
         val issuesListF = coll.find(BSONDocument()).sort(BSONDocument("date" -> 1)).cursor[IssueInfo].collect[List]()
@@ -123,6 +123,7 @@ object CommitDensityService extends ingestionStrategy{
           val b = i.toIterator.duplicate
           val Iterelem = b._1.filter(_._1 == res._1)
           val elem = Iterelem.toList
+          println("ELEM "+elem)
           if(!elem.isEmpty){
             val res1 = (res._1,(res._2._1,res._2._2,(res._2._3._1+elem(0)._2._3._1,res._2._3._2+elem(0)._2._3._2)))
             (b._2 ++ List(res1).toIterator).toIterable
@@ -138,8 +139,9 @@ object CommitDensityService extends ingestionStrategy{
       val totalRange = (Duration.between(y._1,y._2._1).toMillis).toDouble/1000
       x ++ List(LocIssue(y._1.toString, y._2._1.toString,((y._2._2)/1000)/totalRange,IssueState(y._2._3._1,y._2._3._2))).toIterable
     }})
-    println("jsonify")
+    //println("jsonify")
     jsonifyRes.map(x => {/*println("jsonify result"+x);*/import JProtocol._;/*x.sortBy(_.startDate).toJson*/
+      println("jsonify")
     x.toJson
     })
   }
