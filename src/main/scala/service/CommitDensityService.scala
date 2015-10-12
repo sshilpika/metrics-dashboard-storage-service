@@ -140,7 +140,7 @@ object CommitDensityService extends ingestionStrategy{
     val db = mongoCasbah(dbName)
     val collections = db.collectionNames()
     println("Total No of collections"+collections.size)
-    val filteredCol = collections.filter(!_.equals("system.indexes")).filter(!_.equals("system_indexes_defect_density"))
+    val filteredCol = collections.filter(!_.equals("system.indexes")).filter(!_.contains("system_indexes_defect_density"))
     println("Filtered collections "+filteredCol.size)
 
     // commits count for files
@@ -266,7 +266,7 @@ object CommitDensityService extends ingestionStrategy{
           case Failure(v) => v.printStackTrace()
         }
         Await.result(f, 1 hour)*/
-        dbStore(DefectDensity(v, mongoCasbah(user + "_" + repo + "_" + branch)))
+        dbStore(DefectDensity(v, mongoCasbah(user + "_" + repo + "_" + branch),groupBy))
 
         println("KLOC sorted and defect density stored!")
         actorsys.shutdown()

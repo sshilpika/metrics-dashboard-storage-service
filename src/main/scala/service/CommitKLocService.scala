@@ -110,7 +110,7 @@ object CommitKLocService extends Ingestion with CommitKlocIngestion{
     import com.mongodb.casbah.Imports._
     val mongoClient = MongoClient("localhost", 27017)
     val db = mongoClient(user+"_"+repo+"_"+branch)
-    val colls = db.collectionNames filter(!_.equals("system.indexes")) //map(_.filter(!_.equals("system.indexes")))
+    val colls = db.collectionNames filter(!_.equals("system.indexes")) filter(!_.contains("system_indexes_defect_density"))//map(_.filter(!_.equals("system.indexes")))
       colls.toList flatMap(collName => {
         val col = db(collName)
         val newCommitLocLis = col.find().sort(MongoDBObject("date" -> 1)).toList.scanLeft(CommitsLoc(0,"","",0L)){(a,x) =>
