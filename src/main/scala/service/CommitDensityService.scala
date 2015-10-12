@@ -134,10 +134,10 @@ object CommitDensityService extends ingestionStrategy{
         //x.toIterable.map(y => (y._1,y._2.foldLeft((Instant.now(),0.0D,(0,0)):(Instant,Double,(Int,Int))){(acc,z) => (z._2._1,z._2._2,(z._2._3._1+acc._3._1,z._2._3._2+acc._3._2))}))
       })
     })
-    val jsonifyRes = finalRes.map(_.map(y => {
+    val jsonifyRes = finalRes.map(_.foldLeft(Nil: Iterable[LocIssue]){(x,y) => {
       val totalRange = (Duration.between(y._1,y._2._1).toMillis).toDouble/1000
-      LocIssue(y._1.toString, y._2._1.toString,((y._2._2)/1000)/totalRange,IssueState(y._2._3._1,y._2._3._2))
-    }).toIterable)
+      x ++ List(LocIssue(y._1.toString, y._2._1.toString,((y._2._2)/1000)/totalRange,IssueState(y._2._3._1,y._2._3._2))).toIterable
+    }})
 
     jsonifyRes.map(x => {/*println("jsonify result"+x);*/import JProtocol._;/*x.sortBy(_.startDate).toJson*/
     x.toJson
