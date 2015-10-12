@@ -138,7 +138,7 @@ object CommitDensityService extends ingestionStrategy{
       val totalRange = (Duration.between(y._1,y._2._1).toMillis).toDouble/1000
       x ++ List(LocIssue(y._1.toString, y._2._1.toString,((y._2._2)/1000)/totalRange,IssueState(y._2._3._1,y._2._3._2))).toIterable
     }})
-
+    println("jsonify")
     jsonifyRes.map(x => {/*println("jsonify result"+x);*/import JProtocol._;/*x.sortBy(_.startDate).toJson*/
     x.toJson
     })

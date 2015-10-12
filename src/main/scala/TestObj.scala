@@ -23,7 +23,7 @@ object TestObj {
     val resultF = CommitDensityService.dataForDefectDensity(input(0), input(1), input(2), input(3))
 
     resultF.onComplete {
-      case Success(v) => println("Loc done!"+v.compactPrint)
+      case Success(v) => println("Loc done!"+v.compactPrint.length)
        // actorsys.shutdown()
       case Failure(v) => println("Loc and range calculations failed")
         v.printStackTrace()
