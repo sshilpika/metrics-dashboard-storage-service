@@ -1,5 +1,5 @@
 package edu.luc.cs.metrics.ingestion.service
-
+//mongo pagination!!!
 
 import scala.concurrent.Await
 import scala.util.{Failure, Success}
@@ -18,7 +18,7 @@ object Boot extends App{
 
   val metricType = if(choice.toInt ==1) "Issues" else "Commits"
 
-  println("\nEnter username/reponame/branchname/groupBy")
+  println("\nEnter username/reponame/branchname")
   val input = lines.next().split("/")
 
   println(s"You entered: \nUsername: ${input(0)} \nReponame: ${input(1)} \nBranchname: ${input(2)}\n")
@@ -70,14 +70,17 @@ object Boot extends App{
                     Await.result(f2, 1 hour) // wait for result from storing commit KLOC information
 
                     println("Thread sleep before next call")
-                    Thread.sleep(2 * 60*1000)
+                    if(urlGroups.length>1)
+                      Thread.sleep(2 * 60*1000)
 
                   })
                   CommitKLocService.sortLoc(input(0), input(1), input(2), Option(accessToken))
-                  CommitDensityService.dataForDefectDensity(input(0), input(1), input(2), input(3))
+                  CommitDensityService.dataForDefectDensity(input(0), input(1), input(2), "week")
+                  CommitDensityService.dataForDefectDensity(input(0), input(1), input(2), "month")
+                  println("DONE!")
 
                 }else{
-                  println("URL LIST is > 30,000")
+                  println("URL LIST is > 120,000")
                 }
               case Failure(rateError) => println("rate retrieval failed:" + rateError)
                 rateError.printStackTrace()

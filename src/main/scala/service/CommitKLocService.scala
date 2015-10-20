@@ -1,6 +1,7 @@
 package edu.luc.cs.metrics.ingestion.service
 
 import java.time._
+import java.time.temporal.TemporalAdjusters
 import akka.event.Logging
 import com.mongodb.casbah.Imports._
 import reactivemongo.api.collections.bson.BSONCollection
@@ -118,7 +119,13 @@ object CommitKLocService extends Ingestion with CommitKlocIngestion{
           CommitsLoc(a.loc+x.getAs[Int]("loc").get,x.getAs[String]("date").get,x.getAs[String]("filename").get,x.getAs[Long]("rangeLoc").getOrElse(0))}.tail
         val updatedRes =  newCommitLocLis.map(commitLoc =>{
           val selector = MongoDBObject("date" -> commitLoc.date)
-          val modifier = $set("loc" -> commitLoc.loc)
+          val ins: Instant = Instant.parse(commitLoc.date)
+          val zdt =  ZonedDateTime.ofInstant(ins, ZoneId.of("UTC"))
+          /*val startOfWeek = ZonedDateTime.ofInstant(ins.minus(java.time.Duration.ofDays(zdt.getDayOfWeek.getValue)), ZoneId.of("UTC")).withHour(0).withMinute(0).withSecond(0)
+          val endOfWeek = ZonedDateTime.ofInstant(ins.plus(java.time.Duration.ofDays(7-zdt.getDayOfWeek.getValue)), ZoneId.of("UTC")).withHour(23).withMinute(59).withSecond(59)
+          val startOfMonth = zdt.`with`(TemporalAdjusters.firstDayOfMonth())
+          val endOfMonth = startOfMonth.`with`(TemporalAdjusters.lastDayOfMonth()).withHour(23).withMinute(59).withSecond(59)*/
+          val modifier = $set("loc" -> commitLoc.loc/*,"startOfWeek"->startOfWeek,"endOfWeek"-> endOfWeek,"startOfMonth"-> startOfMonth,"endOfMonth"->endOfMonth*/)
           col.update(selector, modifier,true,true)
         })
         val l2 = newCommitLocLis.zip(newCommitLocLis.tail:+newCommitLocLis(newCommitLocLis.length-1))

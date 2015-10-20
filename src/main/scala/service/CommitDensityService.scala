@@ -19,11 +19,11 @@ import concurrent.duration._
  * Created by sshilpika on 6/30/15.
  */
 
-case class IssueState(Open:Int, Close:Int)
+case class IssueState(Open:Int, Close:Int, openCumulative: Int, closedCumulative:Int)
 case class LocIssue(startDate: String, endDate:String,kloc:Double, issues: IssueState)
 
 object JProtocol extends DefaultJsonProtocol{
-  implicit val IssueInfoResult:RootJsonFormat[IssueState] = jsonFormat(IssueState,"open","closed")
+  implicit val IssueInfoResult:RootJsonFormat[IssueState] = jsonFormat(IssueState,"open","closed","openCumulative","closedCumulative")
   implicit val klocFormat:RootJsonFormat[LocIssue] = jsonFormat(LocIssue,"start_date","end_date","kloc","issues")
 }
 
@@ -48,16 +48,16 @@ object CommitInfo{
   }
 }
 
-case class IssueInfo(date: String,state: String/*, created_at: String, closed_at: String*/)
+case class IssueInfo(date: String,state: String, created_at: String, closed_at: String)
 
 object IssueInfo{
   implicit object PersonReader extends BSONDocumentReader[IssueInfo]{
     def read(doc: BSONDocument): IssueInfo = {
       val date = doc.getAs[String]("date").get
       val state = doc.getAs[String]("state").get
-      /*val created_at = doc.getAs[String]("created_at").get
-      val closed_at = doc.getAs[String]("closed_at").get*/
-      IssueInfo(date,state/*,created_at, closed_at*/)
+      val created_at = doc.getAs[String]("created_at").get
+      val closed_at = doc.getAs[String]("closed_at").get
+      IssueInfo(date,state,created_at, closed_at)
     }
   }
 }
@@ -66,87 +66,87 @@ object CommitDensityService extends ingestionStrategy{
   //import com.mongodb.casbah.Imports._
   //val mongoClient = mongoCasbah("localhost", 27017)
 
-  def getIssues(user: String, repo: String, branch:String, groupBy: String, klocList:Map[Instant,(Instant,Double,(Int,Int))]): Future[JsValue] ={
+  def getIssues(user: String, repo: String, branch:String, groupBy: String, klocList:Map[Instant,(Instant,Double,(Int,Int))]): JsValue ={
+
     val connection = mongoConnection
     //gets a reference of the database for commits
     println("Getting issues now!!!")
-    val db = connection.db(user+"_"+repo+"_Issues")
-    val collection = db.collectionNames
-    val timeout = Timeout(1 hour)
-    val finalRes = collection.map(_.filter(!_.contains("system.indexes"))) flatMap(p =>{
-      println(p.length+"No of collections")
-      val res = Future.sequence(p.map(collName => {
-        val coll = db.collection[BSONCollection](collName)
-        val issuesListF = coll.find(BSONDocument()).sort(BSONDocument("date" -> 1)).cursor[IssueInfo].collect[List]()
+    /*val db = connection.db(user+"_"+repo+"_Issues")
+    val collection = db.collectionNames*/
+    val db = mongoCasbah(user+"_"+repo+"_Issues")
+    val collection = db.collectionNames()
+    //val timeout = Timeout(1 hour)
+    val finalRes = collection.filter(!_.contains("system.indexes")).toList.foldLeft(klocList){(klocList2,coll) => {
 
-        issuesListF.map(_.map(issueDoc => {
-          val inst = Instant.parse(issueDoc.date)
-          val ldt = ZonedDateTime.ofInstant(inst, ZoneId.of("UTC"))
-          val startDate = if (groupBy.equals("week")) //weekly
-          //firstDateOfCommit.minus(Duration.ofDays(ldt.getDayOfWeek.getValue - 1))
-            inst.minus(Duration.ofDays(ldt.getDayOfWeek.getValue - 1))
-          else {//monthly
-            inst.minus(Duration.ofDays(ldt.getDayOfMonth - 1))
-            val lddt = ZonedDateTime.ofInstant(inst, ZoneId.of("UTC"))//.withHour(0).withMinute(0).withSecond(0)
-            lddt.`with`(TemporalAdjusters.firstDayOfMonth()).toInstant
-          }
-
-          val startDate2 =
-            if (groupBy.equals("week")) {
-              //weekly
-              inst.minus(Duration.ofDays(ldt.getDayOfWeek.getValue - 1))
-            } else {
-              //monthly
-              ldt.`with`(TemporalAdjusters.firstDayOfMonth()).toInstant //inst.minus(Duration.ofDays(ldt.getDayOfMonth-1))
-            }
-
-          val startDate1 = ZonedDateTime.ofInstant(startDate2, ZoneId.of("UTC")).withHour(0).withMinute(0).withSecond(0).toInstant
-          //println(startDate1+" THis is start date!!!!!")
-          if(klocList.keys.exists(_ == startDate1)) {
-            val startD = klocList.keys.filter(x => {
-              /*println(x.toString+" This is x string "+startDate1);*/ x.toString.contains(startDate1.toString.substring(0, 11))
-            })
-            //println("STARDDDDD "+startD)
-            val startCheck = startD.head
-            val mapValue = klocList get startCheck get //OrElse(0)
-            val openState = if (issueDoc.state.equals("open")) mapValue._3._1 + 1 else mapValue._3._1
-            val closeState = if (issueDoc.state.equals("closed")) mapValue._3._2 + 1 else mapValue._3._2
-            klocList + (startCheck ->(mapValue._1, mapValue._2, (openState, closeState))) //updates old value with new value
-          }else{
-            klocList //+ (startCheck ->(mapValue._1, mapValue._2, (openState, closeState)))
-          }
-        }))
-
-      })).map(_.flatten)
-      res.map(p => {
-        val x = p/*.map(_.toIterable)*/.toIterable.flatten.groupBy(y => y._1)/*foldLeft(Nil: Iterable[(Instant,(Instant,Double,(Int,Int)))]){(i,res) => {
-          val b = i.toIterator.duplicate
-          val Iterelem = b._1.filter(_._1 == res._1)
-          val elem = Iterelem.toList
-          //println("ELEM "+elem)
-          if(!elem.isEmpty){
-            val res1 = (res._1,(res._2._1,res._2._2,(res._2._3._1+elem(0)._2._3._1,res._2._3._2+elem(0)._2._3._2)))
-            (b._2 ++ List(res1).toIterator).toIterable
-          }else{
-            (b._2 ++ List(res).toIterable).toIterable
-          }
-
-        }}*///groupBy(y => y._1)
-        x.toIterable.map(y => (y._1,y._2.foldLeft((Instant.now(),0.0D,(0,0)):(Instant,Double,(Int,Int))){(acc,z) => (z._2._1,z._2._2,(z._2._3._1+acc._3._1,z._2._3._2+acc._3._2))}))
+      val eachColl = db(coll)
+      //println("EACH COLL:"+eachColl)
+      val documentLis = eachColl.find().sort(MongoDBObject("date" -> 1)).toList map (y => {
+        IssueInfo(y.getAs[String]("date") get, y.getAs[String]("state") get, y.getAs[String]("created_at") get,y.getAs[String]("closed_at") get)
       })
-    })
-    val jsonifyRes = finalRes.map(_.foldLeft(Nil: Iterable[LocIssue]){(x,y) => {
+
+      klocList2 ++ documentLis.foldLeft(klocList2){(klocList1,issueDoc) => {
+        val startCheckOpen: Instant = getIssuesKlocDate(groupBy, klocList1, issueDoc.created_at)
+        val mapValueOpen = klocList1 get startCheckOpen get
+        val klocListTemp = klocList1 + (startCheckOpen ->(mapValueOpen._1, mapValueOpen._2, (mapValueOpen._3._1 + 1, mapValueOpen._3._2)))
+
+        if(issueDoc.closed_at.contains("null")){
+          klocListTemp
+        }else {
+          val startCheckClosed: Instant = getIssuesKlocDate(groupBy, klocListTemp, issueDoc.closed_at)
+          val mapValueClose = klocListTemp.get(startCheckClosed).get
+
+          //val closedDate1 =  mapValueClose._3._2 else mapValueClose._3._2 + 1
+          klocListTemp + (startCheckClosed ->(mapValueClose._1, mapValueClose._2, (mapValueClose._3._1, mapValueClose._3._2 + 1)))
+        }
+      }}
+
+    }}.toList.sortBy(_._1)
+
+    val jsonifyRes1 = finalRes.foldLeft(Nil: Iterable[LocIssue]){(x,y) => {
       val totalRange = (Duration.between(y._1,y._2._1).toMillis).toDouble/1000
-      x ++ List(LocIssue(y._1.toString, y._2._1.toString,((y._2._2)/1000)/totalRange,IssueState(y._2._3._1,y._2._3._2))).toIterable
-    }})
-    //println("jsonify")
-    jsonifyRes.map(x => {/*println("jsonify result"+x);*/import JProtocol._;/*x.sortBy(_.startDate).toJson*/
-      println("jsonify")
-    x.toJson
-    })
+      x ++ List(LocIssue(y._1.toString, y._2._1.toString,((y._2._2)/1000)/totalRange,IssueState(y._2._3._1, y._2._3._2,0,0))).toIterable
+    }}
+
+    val jsonifyRes = jsonifyRes1.foldLeft(Nil: Iterable[LocIssue]){(x,y) => {
+    val t = x.toIterator.duplicate
+      if(!t._1.isEmpty){
+        val z = t._2.toIterator.duplicate
+        val f = z._1.toIterable.last
+        z._2.toIterable++ List(LocIssue(y.startDate,y.endDate,y.kloc,IssueState(y.issues.Open,y.issues.Close,f.issues.openCumulative+y.issues.Open-y.issues.Close,
+          f.issues.closedCumulative+y.issues.Close)))
+      }else{
+        t._2.toIterable++ List(LocIssue(y.startDate,y.endDate,y.kloc,IssueState(y.issues.Open,y.issues.Close,y.issues.Open-y.issues.Close,
+          y.issues.Close)))
+      }
+    }}
+
+    import JProtocol._
+    jsonifyRes.toJson
+
   }
 
 
+  def getIssuesKlocDate(groupBy: String, klocList1: Map[Instant, (Instant, Double, (Int, Int))], issueDocDate: String): Instant = {
+    val inst = Instant.parse(issueDocDate)
+    val ldt = ZonedDateTime.ofInstant(inst, ZoneId.of("UTC"))
+
+    val startDate2 =
+      if (groupBy.equals("week")) {
+        //weekly
+        inst.minus(Duration.ofDays(ldt.getDayOfWeek.getValue - 1))
+      } else {
+        //monthly
+        ldt.`with`(TemporalAdjusters.firstDayOfMonth()).toInstant //inst.minus(Duration.ofDays(ldt.getDayOfMonth-1))
+      }
+
+    val startDate1 = ZonedDateTime.ofInstant(startDate2, ZoneId.of("UTC")).withHour(0).withMinute(0).withSecond(0).toInstant
+    val startD = klocList1.keys.filter(x => {
+      x.toString.contains(startDate1.toString.substring(0, 11))
+    })
+
+    val startCheck = startD.head
+    startCheck
+  }
 
   def getKloc(dbName: String, groupBy:String):Map[Instant,(Instant,Double,(Int,Int))] ={
 
@@ -180,10 +180,10 @@ object CommitDensityService extends ingestionStrategy{
       val dateRangeLength = if (groupBy.equals("week")) {
         //weekly
         val daysBtw = java.time.Duration.between(startDate_groupBy_file, now).toDays
-        if (daysBtw % 7 != 0)
+        //if (daysBtw % 7 != 0)
           (daysBtw / 7).toInt + 1
-        else
-          (daysBtw / 7).toInt
+        /*else
+          (daysBtw / 7).toInt*/
       } else {
         //monthly
         val zonedStart = ZonedDateTime.ofInstant(startDate_groupBy_file, ZoneId.of("UTC"))
@@ -258,7 +258,7 @@ object CommitDensityService extends ingestionStrategy{
     result
   }
 
-  def dataForDefectDensity(user: String, repo: String, branch:String, groupBy: String): Future[JsValue] ={
+  def dataForDefectDensity(user: String, repo: String, branch:String, groupBy: String): String ={
 
     val kloc = getKloc(user+"_"+repo+"_"+branch, groupBy)
     println("This is kloc"+kloc)
@@ -267,29 +267,7 @@ object CommitDensityService extends ingestionStrategy{
     writer.write(k.toString())
     writer.close()
     val defectDensityResult = getIssues(user,repo,branch, groupBy, kloc)
-    defectDensityResult.onComplete{
-      case Success(v) =>
-        /*val connection = mongoConnection
-        val db = connection.db(user + "_" + repo + "_" + branch)
-        val collection = db.collection[BSONCollection]("system_indexes_defect_density")
-        val document = BSONDocument("DefectDensity" -> v.compactPrint)
-        val f = collection.insert(document)
-        f.onComplete{
-          case Success(v) => println("Collection saved")
-          case Failure(v) => v.printStackTrace()
-        }
-        Await.result(f, 1 hour)*/
-        dbStore(DefectDensity(v, mongoCasbah(user + "_" + repo + "_" + branch),groupBy))
-
-        println("KLOC sorted and defect density stored!")
-        actorsys.shutdown()
-      case Failure(v) => println("Loc and range calculations failed")
-        v.printStackTrace()
-        actorsys.shutdown()
-    }
-    Await.result(defectDensityResult, 1 hour)
-
-    defectDensityResult
+    dbStore(DefectDensity(defectDensityResult, mongoCasbah(user + "_" + repo + "_" + branch),groupBy))
 
   }
 

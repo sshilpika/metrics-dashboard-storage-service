@@ -20,16 +20,18 @@ object TestObj {
 
     println(s"You entered: \nUsername: ${input(0)} \nReponame: ${input(1)} \nBranchname: ${input(2)}\n")
     val timeout = Timeout(1 hour)
-    val resultF = CommitDensityService.dataForDefectDensity(input(0), input(1), input(2), input(3))
+    CommitDensityService.dataForDefectDensity(input(0), input(1), input(2), "week")
+    CommitDensityService.dataForDefectDensity(input(0), input(1), input(2), "month")
+    println("done")
 
-    resultF.onComplete {
+    /*resultF.onComplete {
       case Success(v) => println("Loc done!"+v.compactPrint.length)
        // actorsys.shutdown()
       case Failure(v) => println("Loc and range calculations failed")
         v.printStackTrace()
         actorsys.shutdown()
     }
-    Await.result(resultF,1 hour)
+    Await.result(resultF,1 hour)*/
   }
 
 }
