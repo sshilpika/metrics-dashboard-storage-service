@@ -267,7 +267,7 @@ object CommitDensityService extends ingestionStrategy{
     writer.write(k.toString())
     writer.close()
     val defectDensityResult = getIssues(user,repo,branch, groupBy, kloc)
-    dbStore(DefectDensity(defectDensityResult, mongoCasbah(user + "_" + repo + "_" + branch),groupBy))
+    dbStore(DefectDensity(defectDensityResult, mongoCasbah(user + "_" + repo + "_" + branch+"_1"),groupBy))
 
   }
 
