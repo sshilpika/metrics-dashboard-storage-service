@@ -49,7 +49,7 @@ object dbStore {
     case DefectDensity(defectDensityResult: JsValue, db: MongoDB, groupBy: String) =>
 
 
-        val coll = db("system_indexes_defect_density_"+groupBy)
+        val coll = db("defect_density_"+groupBy)
         coll.update(MongoDBObject("id" -> "1"),$set("defectDensity" -> defectDensityResult.compactPrint),true,true)
         //coll.insert(MongoDBObject("defectDensity" -> defectDensityResult.compactPrint))
 
