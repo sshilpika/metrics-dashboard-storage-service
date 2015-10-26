@@ -71,7 +71,9 @@ object commitIssueCollection extends ingestionStrategy with Ingestion {
 
       case "Issues" =>
         //implicit val timeout = timeout(60.seconds)
-        val gitIssueList = getHttpResponse(url("https://api.github.com/repos/"+user+"/"+repo+"/issues?state=all", page),rawHeaderList(accessToken),60.seconds)
+        val gitIssueList = if(cUrl.isEmpty) getHttpResponse(url("https://api.github.com/repos/"+user+"/"+repo+"/issues?state=all", page),rawHeaderList(accessToken),60.seconds)
+        else
+          getHttpResponse(url(cUrl, page),rawHeaderList(accessToken),60.seconds)
 
         gitIssueList.map(issueList => {
           rateLimitCheck(issueList)

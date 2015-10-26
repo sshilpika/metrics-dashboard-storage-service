@@ -22,20 +22,20 @@ object Boot extends App{
   val input = lines.next().split("/")
 
   println(s"You entered: \nUsername: ${input(0)} \nReponame: ${input(1)} \nBranchname: ${input(2)}\n")
-  val f = commitIssueCollection(input(0), input(1), input(2),metricType, Option(accessToken),None, None,"")
+  val f = commitIssueCollection(input(0), input(1), input(2),metricType, Option(accessToken_Issues),None, None,"")
 
   println("Ingestion Service started")
 
   f.onComplete {
     case Success(value) => println("Success:!!!! " + value)
       if(choice.equals("2")) {
-        val f1 = CommitKLocService.getMongoUrl(input(0), input(1), input(2), Option(accessToken))
+        val f1 = CommitKLocService.getMongoUrl(input(0)+"_"+input(1)+"_"+input(2), Option(accessToken_CommitsURL))
         println("KLOC Service started")
         f1.onComplete {
           case Success(urlList) =>
             println("URLLIST:" + urlList.length)
             // get remaining rate limit
-            val rate = rateLimit.calculateRateLimit(Option(accessToken))
+            val rate = rateLimit.calculateRateLimit(Option(accessToken_CommitsURL))
             rate.onComplete {
               case Success(rateVal) =>
                 //grouping the urlLists to avoid Github rate limit abuse
@@ -74,10 +74,13 @@ object Boot extends App{
                       Thread.sleep(2 * 60*1000)
 
                   })
-                  CommitKLocService.sortLoc(input(0), input(1), input(2), Option(accessToken))
+                  CommitKLocService.sortLoc(input(0), input(1), input(2)/*, Option(accessToken_CommitsURL)*/)
                   CommitDensityService.dataForDefectDensity(input(0), input(1), input(2), "week")
                   CommitDensityService.dataForDefectDensity(input(0), input(1), input(2), "month")
-                  println("DONE!")
+                  println("DONE storing commit details and defect density result")
+                  // store db names for tracked dbs
+                  println("Storing tracked Db name")
+                  CommitDensityService.storeRepoName(input(0)+"_"+input(1)+"_"+input(2))
 
                 }else{
                   println("URL LIST is > 120,000")
@@ -92,6 +95,7 @@ object Boot extends App{
         }
         Await.result(f1,1 hour)
       }
+     // actorsys.shutdown()
     case Failure(value) => println("Ingestion Failed with message: "+value)
       actorsys.shutdown()
   }

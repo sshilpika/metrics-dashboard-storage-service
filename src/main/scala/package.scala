@@ -11,7 +11,8 @@ object `package` {
 
   //Auth-Token
   val homeDir = System.getProperty("user.home")
-  val accessToken = scala.io.Source.fromFile(homeDir+"/githubAccessToken").getLines().next()
+  val accessToken_Issues = scala.io.Source.fromFile(homeDir+"/githubAccessToken").getLines().next()
+  val accessToken_CommitsURL = scala.io.Source.fromFile(homeDir+"/githubAccessToken").getLines().next()
   val more_tokens = scala.io.Source.fromFile(System.getProperty("user.home")+"/token_all").getLines().toList
   //Actor System
   implicit val actorsys = ActorSystem("gitDefectDensity")

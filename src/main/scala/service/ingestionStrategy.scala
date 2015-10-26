@@ -20,6 +20,7 @@ sealed trait Metric
 case class Issues(issuesList:List[JsValue], db: MongoDB) extends Metric
 case class Commits(commitList:List[JsValue], db: MongoDB) extends Metric
 case class DefectDensity(commitList:JsValue, db: MongoDB, groupBy:String) extends Metric
+case class RepoNames(db:MongoDB, docName: String) extends Metric
 
 trait Ingestion {
   def timeout(time: FiniteDuration): Timeout  = Timeout(time)
@@ -44,7 +45,7 @@ trait ingestionStrategy{
   def getNextPageTemp(gitList: HttpResponse): Option[String] = {
     println("This is a list of headers:")
     val link = gitList.headers.filter(x => x.name.equals("Link"))
-    gitList.headers.map(x => println(x.name + "!!!!!!!!!!!!!!!!" + x.value))
+    //gitList.headers.map(x => println(x.name + "!!!!!!!!!!!!!!!!" + x.value))
     println(link)
     val nextUrlForCurrentWeek = if (!link.isEmpty)
       Option(link(0)).flatMap(x => {
@@ -62,7 +63,7 @@ trait ingestionStrategy{
   def getNextPage(gitList: HttpResponse): Option[String] = {
     println("This is a list of headers:")
     val link = gitList.headers.filter(x => x.name.equals("Link"))
-    gitList.headers.map(x => println(x.name + "!!!!!!!!!!!!!!!!" + x.value))
+    //gitList.headers.map(x => println(x.name + "!!!!!!!!!!!!!!!!" + x.value))
     println(link)
     val nextUrlForCurrentWeek = if (!link.isEmpty)
       Option(link(0)).flatMap(x => {

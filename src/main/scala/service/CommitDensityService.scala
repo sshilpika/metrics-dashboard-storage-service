@@ -85,19 +85,28 @@ object CommitDensityService extends ingestionStrategy{
       })
 
       klocList2 ++ documentLis.foldLeft(klocList2){(klocList1,issueDoc) => {
-        val startCheckOpen: Instant = getIssuesKlocDate(groupBy, klocList1, issueDoc.created_at)
-        val mapValueOpen = klocList1 get startCheckOpen get
-        val klocListTemp = klocList1 + (startCheckOpen ->(mapValueOpen._1, mapValueOpen._2, (mapValueOpen._3._1 + 1, mapValueOpen._3._2)))
+        val startCheckOpen: Option[Instant] = getIssuesKlocDate(groupBy, klocList1, issueDoc.created_at)
 
-        if(issueDoc.closed_at.contains("null")){
+        if(startCheckOpen.isDefined){
+        val mapValueOpen = klocList1 get startCheckOpen.get get
+        val klocListTemp = klocList1 + (startCheckOpen.get ->(mapValueOpen._1, mapValueOpen._2, (mapValueOpen._3._1 + 1, mapValueOpen._3._2)))
+
+        if (issueDoc.closed_at.contains("null")) {
           klocListTemp
-        }else {
-          val startCheckClosed: Instant = getIssuesKlocDate(groupBy, klocListTemp, issueDoc.closed_at)
-          val mapValueClose = klocListTemp.get(startCheckClosed).get
+        } else {
+          val startCheckClosed: Option[Instant] = getIssuesKlocDate(groupBy, klocListTemp, issueDoc.closed_at)
+          if (startCheckClosed.isDefined) {
+          val mapValueClose = klocListTemp.get(startCheckClosed.get).get
 
           //val closedDate1 =  mapValueClose._3._2 else mapValueClose._3._2 + 1
-          klocListTemp + (startCheckClosed ->(mapValueClose._1, mapValueClose._2, (mapValueClose._3._1, mapValueClose._3._2 + 1)))
+          klocListTemp + (startCheckClosed.get ->(mapValueClose._1, mapValueClose._2, (mapValueClose._3._1, mapValueClose._3._2 + 1)))
+        }else
+            klocListTemp
         }
+      }else{
+          klocList1
+        }
+
       }}
 
     }}.toList.sortBy(_._1)
@@ -126,7 +135,7 @@ object CommitDensityService extends ingestionStrategy{
   }
 
 
-  def getIssuesKlocDate(groupBy: String, klocList1: Map[Instant, (Instant, Double, (Int, Int))], issueDocDate: String): Instant = {
+  def getIssuesKlocDate(groupBy: String, klocList1: Map[Instant, (Instant, Double, (Int, Int))], issueDocDate: String): Option[Instant] = {
     val inst = Instant.parse(issueDocDate)
     val ldt = ZonedDateTime.ofInstant(inst, ZoneId.of("UTC"))
 
@@ -143,9 +152,11 @@ object CommitDensityService extends ingestionStrategy{
     val startD = klocList1.keys.filter(x => {
       x.toString.contains(startDate1.toString.substring(0, 11))
     })
-
-    val startCheck = startD.head
-    startCheck
+    val resultIns = startD.toList
+    if(resultIns.isEmpty)
+      None
+    else
+      Some(resultIns.head)
   }
 
   def getKloc(dbName: String, groupBy:String):Map[Instant,(Instant,Double,(Int,Int))] ={
@@ -269,6 +280,10 @@ object CommitDensityService extends ingestionStrategy{
     val defectDensityResult = getIssues(user,repo,branch, groupBy, kloc)
     dbStore(DefectDensity(defectDensityResult, mongoCasbah(user + "_" + repo + "_" + branch+"_1"),groupBy))
 
+  }
+
+  def storeRepoName(docName: String): String={
+    dbStore(RepoNames(mongoCasbah("GitTracking"),docName))
   }
 
 

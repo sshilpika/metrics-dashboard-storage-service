@@ -47,9 +47,9 @@ object CommitsLoc{
 //get the list of Urls from the DB
 object CommitKLocService extends Ingestion with CommitKlocIngestion{
 
-  def getMongoUrl(user: String, repo: String, branch: String, accessToken: Option[String]): Future[List[String]] = {
+  def getMongoUrl(dbName: String, accessToken: Option[String]): Future[List[String]] = {
 
-    val db = reactiveMongoDb(user+"_"+repo+"_"+branch+"_"+"URL")
+    val db = reactiveMongoDb(dbName+"_"+"URL")
     val sortedUrls = db.collectionNames map(p => p.filter(_.contains("COLL"))) map(_.sorted)
     sortedUrls.flatMap(p =>
       Future.sequence(p.map(collName => {
@@ -62,6 +62,20 @@ object CommitKLocService extends Ingestion with CommitKlocIngestion{
       })).map(_.flatten))
   }
 
+  def getSelectedMongoUrl(dbName: String, accessToken: Option[String], collectionNames: List[String]): Future[List[String]] = {
+
+    val db = reactiveMongoDb(dbName+"_"+"URL")
+    val sortedUrls = collectionNames
+    Future.sequence(sortedUrls.map(collName => {
+        val collection = db.collection[BSONCollection](collName)
+        val collectionsList = collection.find(BSONDocument()).sort(BSONDocument("date" -> 1)).cursor[CommitsUrl].collect[List]()
+        collectionsList.map(p1 =>{
+          p1.map { case (commitUrl) =>
+            commitUrl.url
+          }})
+      })).map(_.flatten)
+  }
+
 
   def storeCommitKlocInfo(user: String, repo: String, branch: String, accessToken: Option[String], urlList : List[String]): Future[List[String]] ={
 
@@ -72,7 +86,7 @@ object CommitKLocService extends Ingestion with CommitKlocIngestion{
       val gitFileCommitList = getHttpResponse(url,rawHeaderList(accessToken),1 hour)
 
       gitFileCommitList.map(commit => {
-          println("This is what I got from Github $$$$%% "+commit.entity.data.asString.substring(1,100))
+         // println("This is what I got from Github $$$$%% "+commit.entity.data.asString.substring(1,100))
           val filesList = commit.entity.data.asString.parseJson.asJsObject.getFields("commit", "files")
           val commitSha = commit.entity.data.asString.parseJson.asJsObject.getFields("sha")(0)
           val date = filesList(0).asJsObject.getFields("committer")(0).asJsObject.getFields("date")(0).compactPrint.replaceAll("\"", "")
@@ -106,7 +120,7 @@ object CommitKLocService extends Ingestion with CommitKlocIngestion{
   }
 
   //Update Range*LOC info in the KLOC document
-  def sortLoc(user: String, repo: String, branch: String, accessToken: Option[String]): List[CommitsLoc] ={
+  def sortLoc(user: String, repo: String, branch: String/*, accessToken: Option[String]*/): List[CommitsLoc] ={
     // get reference of the database
     import com.mongodb.casbah.Imports._
     val mongoClient = MongoClient("localhost", 27017)

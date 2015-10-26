@@ -22,6 +22,7 @@ object TestObj {
     val timeout = Timeout(1 hour)
     CommitDensityService.dataForDefectDensity(input(0), input(1), input(2), "week")
     CommitDensityService.dataForDefectDensity(input(0), input(1), input(2), "month")
+    CommitDensityService.storeRepoName(input(0)+"_"+input(1)+"_"+input(2))
     println("done")
 
     /*resultF.onComplete {
