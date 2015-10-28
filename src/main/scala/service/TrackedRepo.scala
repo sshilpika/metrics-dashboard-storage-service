@@ -101,17 +101,18 @@ object TrackedRepo {
 
                           Await.result(f2, 1 hour) // wait for result from storing commit KLOC information
 
-                          log.info("Thread sleep before next call")
+
                           if(urlGroups.length>1)
+                            log.info("Thread sleep before next call")
                             Thread.sleep(2 * 60*1000)
 
                         })
                         CommitKLocService.sorSelectedtLoc(repoDetails(0), repoDetails(1), repoDetails(2))
                         CommitDensityService.dataForDefectDensity(repoDetails(0), repoDetails(1), repoDetails(2), "week")
                         CommitDensityService.dataForDefectDensity(repoDetails(0), repoDetails(1), repoDetails(2), "month")
-                        log.info("DONE storing commit details and defect density result")
+                        log.info("DONE storing commit details and defect density result for "+dbName)
                         // store db names for tracked dbs
-                        log.info("Storing tracked Db name")
+                        log.info("Storing tracked Db name: "+dbName)
                         //CommitDensityService.storeRepoName(repoDetails(0)+"_"+repoDetails(1)+"_"+repoDetails(2))
 
                       }else{
