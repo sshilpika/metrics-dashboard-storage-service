@@ -15,7 +15,7 @@ object TrackedRepo {
     while(true){
       val ingestedDBs = gitIngestion
       log.info("REsult:"+ingestedDBs)
-      Thread.sleep(2+60*1000)
+      Thread.sleep(24*60*60*1000)
     }
 
 
