@@ -258,21 +258,17 @@ object CommitDensityService extends ingestionStrategy{
       finalres
 
     }).toList
-    val result = commitCount.groupBy(_._1) map(y => (y._1,{
-      //println("Flatten")
+    commitCount.groupBy(_._1) map(y => (y._1,{
       val rangeLoc = y._2.foldLeft(0D)((acc,z) => acc+z._3)
       (y._2(0)._2,rangeLoc,y._2(0)._4)
     }))
-    //result
-    println("Total Commits = "+result)
-    //mongoConnectionClose
-    result
+
   }
 
   def dataForDefectDensity(user: String, repo: String, branch:String, groupBy: String): String ={
 
     val kloc = getKloc(user+"_"+repo+"_"+branch, groupBy)
-    println("This is kloc"+kloc)
+    //println("This is kloc"+kloc)
     val writer = new PrintWriter(new java.io.File("store.txt"))
     val k = kloc.toList.sortBy(_._1)
     writer.write(k.toString())

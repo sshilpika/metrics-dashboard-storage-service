@@ -29,7 +29,7 @@ object CommitsUrl{
 }
 
 
-case class CommitsLoc(loc: Int=0, date:String="", filename: String="", rangeLoc:Long=0L)
+case class CommitsLoc(loc: Int=0, date:String="", filename: String="", rangeLoc:Long=0L,sortedFlag:Boolean)
 
 object CommitsLoc{
   implicit object PersonReader extends BSONDocumentReader[CommitsLoc]{
@@ -38,7 +38,8 @@ object CommitsLoc{
       val date = doc.getAs[String]("date").get
       val rangeLoc = 0L
       val filename = doc.getAs[String]("filename").get
-      CommitsLoc(loc,date,filename, rangeLoc)
+      val sorted = doc.getAs[Boolean]("sorted").get
+      CommitsLoc(loc,date,filename, rangeLoc,sorted)
     }
   }
 }
@@ -86,7 +87,6 @@ object CommitKLocService extends Ingestion with CommitKlocIngestion{
       val gitFileCommitList = getHttpResponse(url,rawHeaderList(accessToken),1 hour)
 
       gitFileCommitList.map(commit => {
-         // println("This is what I got from Github $$$$%% "+commit.entity.data.asString.substring(1,100))
           val filesList = commit.entity.data.asString.parseJson.asJsObject.getFields("commit", "files")
           val commitSha = commit.entity.data.asString.parseJson.asJsObject.getFields("sha")(0)
           val date = filesList(0).asJsObject.getFields("committer")(0).asJsObject.getFields("date")(0).compactPrint.replaceAll("\"", "")
@@ -107,7 +107,7 @@ object CommitKLocService extends Ingestion with CommitKlocIngestion{
             // cursor might throw exception
             val selector = BSONDocument("date" -> date)
             val modifier = BSONDocument("$set" -> BSONDocument("date" -> date, "commitSha" -> commitSha.compactPrint,
-              "loc" -> loc, "filename" -> filename, "fileSha" -> fileSha.compactPrint))
+              "loc" -> loc, "filename" -> filename, "fileSha" -> fileSha.compactPrint, "sorted"-> false))
             collection.update(selector,modifier,multi=true,upsert = true)
             /*collection.update(MongoDBObject("date" -> date),$set("date" -> date, "commitSha" -> commitSha.compactPrint,
               "loc" -> loc, "filename" -> filename, "fileSha" -> fileSha.compactPrint),true,true)*/
@@ -120,26 +120,22 @@ object CommitKLocService extends Ingestion with CommitKlocIngestion{
   }
 
   //Update Range*LOC info in the KLOC document
-  def sortLoc(user: String, repo: String, branch: String/*, accessToken: Option[String]*/): List[CommitsLoc] ={
+  def sortLoc(user: String, repo: String, branch: String): List[CommitsLoc] ={
     // get reference of the database
     import com.mongodb.casbah.Imports._
     val mongoClient = MongoClient("localhost", 27017)
     val db = mongoClient(user+"_"+repo+"_"+branch)
-    val colls = db.collectionNames filter(!_.equals("system.indexes")) filter(!_.contains("system_indexes_defect_density"))//map(_.filter(!_.equals("system.indexes")))
+    val colls = db.collectionNames filter(!_.equals("system.indexes")) filter(!_.contains("system_indexes_defect_density"))
       colls.toList flatMap(collName => {
         val col = db(collName)
-        val newCommitLocLis = col.find().sort(MongoDBObject("date" -> 1)).toList.scanLeft(CommitsLoc(0,"","",0L)){(a,x) =>
+        val newCommitLocLis = col.find().sort(MongoDBObject("date" -> 1)).toList.scanLeft(CommitsLoc(0,"","",0L,false)){(a,x) =>
 
-          CommitsLoc(a.loc+x.getAs[Int]("loc").get,x.getAs[String]("date").get,x.getAs[String]("filename").get,x.getAs[Long]("rangeLoc").getOrElse(0))}.tail
+          CommitsLoc(a.loc+x.getAs[Int]("loc").get,x.getAs[String]("date").get,x.getAs[String]("filename").get,x.getAs[Long]("rangeLoc").getOrElse(0),x.getAs[Boolean]("sorted").get)}.tail
         val updatedRes =  newCommitLocLis.map(commitLoc =>{
           val selector = MongoDBObject("date" -> commitLoc.date)
           val ins: Instant = Instant.parse(commitLoc.date)
           val zdt =  ZonedDateTime.ofInstant(ins, ZoneId.of("UTC"))
-          /*val startOfWeek = ZonedDateTime.ofInstant(ins.minus(java.time.Duration.ofDays(zdt.getDayOfWeek.getValue)), ZoneId.of("UTC")).withHour(0).withMinute(0).withSecond(0)
-          val endOfWeek = ZonedDateTime.ofInstant(ins.plus(java.time.Duration.ofDays(7-zdt.getDayOfWeek.getValue)), ZoneId.of("UTC")).withHour(23).withMinute(59).withSecond(59)
-          val startOfMonth = zdt.`with`(TemporalAdjusters.firstDayOfMonth())
-          val endOfMonth = startOfMonth.`with`(TemporalAdjusters.lastDayOfMonth()).withHour(23).withMinute(59).withSecond(59)*/
-          val modifier = $set("loc" -> commitLoc.loc/*,"startOfWeek"->startOfWeek,"endOfWeek"-> endOfWeek,"startOfMonth"-> startOfMonth,"endOfMonth"->endOfMonth*/)
+          val modifier = $set("loc" -> commitLoc.loc,"sorted"->true)
           col.update(selector, modifier,true,true)
         })
         val l2 = newCommitLocLis.zip(newCommitLocLis.tail:+newCommitLocLis(newCommitLocLis.length-1))
@@ -152,6 +148,47 @@ object CommitKLocService extends Ingestion with CommitKlocIngestion{
         })
         newCommitLocLis
       })
+
+  }
+
+  def sorSelectedtLoc(user: String, repo: String, branch: String): List[CommitsLoc] ={
+    // get reference of the database
+    import com.mongodb.casbah.Imports._
+    val mongoClient = MongoClient("localhost", 27017)
+    val db = mongoClient(user+"_"+repo+"_"+branch)
+    val colls = db.collectionNames filter(!_.equals("system.indexes")) filter(!_.contains("system_indexes_defect_density"))
+    colls.toList flatMap(collName => {
+      val col = db(collName)
+     // val commitLocList = col.find().sort(MongoDBObject("date" -> 1)).toList.
+      val newCommitLocLis = col.find().sort(MongoDBObject("date" -> 1)).toList.scanLeft(CommitsLoc(0,"","",0L,true)){(a,x) =>
+        if(!x.getAs[Boolean]("sorted").get)
+          CommitsLoc(a.loc+x.getAs[Int]("loc").get,x.getAs[String]("date").get,x.getAs[String]("filename").get,x.getAs[Long]("rangeLoc").getOrElse(0),x.getAs[Boolean]("sorted").get)
+        else
+          CommitsLoc(x.getAs[Int]("loc").get,x.getAs[String]("date").get,x.getAs[String]("filename").get,x.getAs[Long]("rangeLoc").getOrElse(0),x.getAs[Boolean]("sorted").get)
+      }.tail
+
+
+      val updatedRes =  newCommitLocLis.map(commitLoc =>{
+        if(!commitLoc.sortedFlag) {
+          val selector = MongoDBObject("date" -> commitLoc.date)
+          val ins: Instant = Instant.parse(commitLoc.date)
+          val zdt = ZonedDateTime.ofInstant(ins, ZoneId.of("UTC"))
+          val modifier = $set("loc" -> commitLoc.loc, "sorted" -> true)
+          col.update(selector, modifier, true, true)
+        }
+      })
+      val l2 = newCommitLocLis.zip(newCommitLocLis.tail:+newCommitLocLis(newCommitLocLis.length-1))
+      l2.map(x => {
+        if(!x._2.sortedFlag) {
+          val ldt = ZonedDateTime.ofInstant(Instant.parse(x._2.date), ZoneId.of("UTC"))
+          val range = java.time.Duration.between(Instant.parse(x._1.date), Instant.parse(x._2.date)).toMillis / 1000
+          val selector = MongoDBObject("date" -> x._1.date)
+          val modifier = $set("rangeLoc" -> range)
+          col.update(selector, modifier, true, true)
+        }
+      })
+      newCommitLocLis
+    })
 
   }
 

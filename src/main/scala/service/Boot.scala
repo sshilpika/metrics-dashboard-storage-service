@@ -12,28 +12,28 @@ object Boot extends App{
   var choice = ""
   do {
 
-    println("Enter 1 or 2 to choose one from the options below:\n1. Issues\n2. Commits\n")
+    log.info("Enter 1 or 2 to choose one from the options below:\n1. Issues\n2. Commits\n")
     choice = lines.next()
   }while(!choice.equals("1") && !choice.equals("2"))
 
   val metricType = if(choice.toInt ==1) "Issues" else "Commits"
 
-  println("\nEnter username/reponame/branchname")
+  log.info("\nEnter username/reponame/branchname")
   val input = lines.next().split("/")
 
-  println(s"You entered: \nUsername: ${input(0)} \nReponame: ${input(1)} \nBranchname: ${input(2)}\n")
+  log.info(s"You entered: \nUsername: ${input(0)} \nReponame: ${input(1)} \nBranchname: ${input(2)}\n")
   val f = commitIssueCollection(input(0), input(1), input(2),metricType, Option(accessToken_Issues),None, None,"")
 
-  println("Ingestion Service started")
+  log.info("Ingestion Service started")
 
   f.onComplete {
-    case Success(value) => println("Success:!!!! " + value)
+    case Success(value) => log.info("Success:!!!! " + value)
       if(choice.equals("2")) {
         val f1 = CommitKLocService.getMongoUrl(input(0)+"_"+input(1)+"_"+input(2), Option(accessToken_CommitsURL))
-        println("KLOC Service started")
+        log.info("KLOC Service started")
         f1.onComplete {
           case Success(urlList) =>
-            println("URLLIST:" + urlList.length)
+            log.info("URLLIST:" + urlList.length)
             // get remaining rate limit
             val rate = rateLimit.calculateRateLimit(Option(accessToken_CommitsURL))
             rate.onComplete {
@@ -50,26 +50,26 @@ object Boot extends App{
                   var access_token:String = stack.pop
 
                   urlGroups map(urlLis => {
-                    println(urlLis.length + " length of inner List")
+                    log.info(urlLis.length + " length of inner List")
                     val index = urlGroups.indexOf(urlLis)
                     //val access_token_temp = access_token
-                    println("The index is:"+index)
+                    log.info("The index is:"+index)
                     if((index+1) % 5 == 0 ){
-                      println("switching tokens! "+index)
+                      log.info("switching tokens! "+index)
                       access_token = stack.pop
                     }
-                    println("INDEX????"+index+"ACCESS TOKEN?????"+access_token)
+                    log.info("INDEX????"+index+"ACCESS TOKEN?????"+access_token)
                     val f2 = CommitKLocService.storeCommitKlocInfo(input(0), input(1), input(2), Option(access_token.toString), urlLis)
                     f2.onComplete {
-                      case Success(value) => println(s"Successfully stored commit information for ${value.length} files")
-                      case Failure(value) => println("Kloc storage failed with message: ")
+                      case Success(value) => log.info(s"Successfully stored commit information for ${value.length} files")
+                      case Failure(value) => log.info("Kloc storage failed with message: ")
                         value.printStackTrace()
                         actorsys.shutdown()
                     }
 
                     Await.result(f2, 1 hour) // wait for result from storing commit KLOC information
 
-                    println("Thread sleep before next call")
+                    log.info("Thread sleep before next call")
                     if(urlGroups.length>1)
                       Thread.sleep(2 * 60*1000)
 
@@ -77,26 +77,26 @@ object Boot extends App{
                   CommitKLocService.sortLoc(input(0), input(1), input(2)/*, Option(accessToken_CommitsURL)*/)
                   CommitDensityService.dataForDefectDensity(input(0), input(1), input(2), "week")
                   CommitDensityService.dataForDefectDensity(input(0), input(1), input(2), "month")
-                  println("DONE storing commit details and defect density result")
+                  log.info("DONE storing commit details and defect density result for "+input(1))
                   // store db names for tracked dbs
-                  println("Storing tracked Db name")
+                  log.info("Storing tracked Db name for "+input(1))
                   CommitDensityService.storeRepoName(input(0)+"_"+input(1)+"_"+input(2))
 
                 }else{
-                  println("URL LIST is > 120,000")
+                  log.info("URL LIST is > 120,000")
                 }
-              case Failure(rateError) => println("rate retrieval failed:" + rateError)
+              case Failure(rateError) => log.info("rate retrieval failed:" + rateError)
                 rateError.printStackTrace()
                 actorsys.shutdown()
             }
             Await.result(rate,1 hour)
-          case Failure(value) => println("Url collection failed with message: " + value)
+          case Failure(value) => log.info("Url collection failed with message: " + value)
             actorsys.shutdown()
         }
         Await.result(f1,1 hour)
       }
      // actorsys.shutdown()
-    case Failure(value) => println("Ingestion Failed with message: "+value)
+    case Failure(value) => log.info("Ingestion Failed with message: "+value)
       actorsys.shutdown()
   }
 

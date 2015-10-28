@@ -43,10 +43,9 @@ trait ingestionStrategy{
   def mongoConnectionClose = mongoClientCasbah1.close()
 
   def getNextPageTemp(gitList: HttpResponse): Option[String] = {
-    println("This is a list of headers:")
+    log.info("This is a list of headers:")
     val link = gitList.headers.filter(x => x.name.equals("Link"))
-    //gitList.headers.map(x => println(x.name + "!!!!!!!!!!!!!!!!" + x.value))
-    println(link)
+    log.info(link.toString())
     val nextUrlForCurrentWeek = if (!link.isEmpty)
       Option(link(0)).flatMap(x => {
         val i = x.value.indexOf("page=")
@@ -61,10 +60,9 @@ trait ingestionStrategy{
   }
 
   def getNextPage(gitList: HttpResponse): Option[String] = {
-    println("This is a list of headers:")
+    log.info("This is a list of headers:")
     val link = gitList.headers.filter(x => x.name.equals("Link"))
-    //gitList.headers.map(x => println(x.name + "!!!!!!!!!!!!!!!!" + x.value))
-    println(link)
+    log.info("The link header is: "+link)
     val nextUrlForCurrentWeek = if (!link.isEmpty)
       Option(link(0)).flatMap(x => {
         val i = x.value.indexOf("page=")
@@ -80,7 +78,7 @@ trait ingestionStrategy{
     val rateRemaining = gitList.headers.filter(x => x.name.equals("X-RateLimit-Remaining"))(0).value.toInt
     val inst = Instant.ofEpochSecond(rateTime.toLong)
     if (rateRemaining == 0) {
-      println("Sleeping Rate Limit = 0")
+      log.info("Sleeping Rate Limit = 0")
       Thread.sleep(inst.toEpochMilli)
       rateRemaining
     } else if (rateRemaining % 1000 == 0) {
