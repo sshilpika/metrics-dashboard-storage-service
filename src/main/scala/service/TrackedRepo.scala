@@ -100,7 +100,7 @@ object TrackedRepo {
                               actorsys.shutdown()
                           }
 
-                          Await.result(f2, 1 hour) // wait for result from storing commit KLOC information
+                          Await.result(f2, 3 hours) // wait for result from storing commit KLOC information
 
 
                           if(urlGroups.length>1)
@@ -123,24 +123,24 @@ object TrackedRepo {
                       rateError.printStackTrace()
                       actorsys.shutdown()
                   }
-                  Await.result(rate,1 hour)
+                  Await.result(rate,3 hours)
                   log.info("Done processing RATE!!")
                 case Failure (v) =>
                 log.info(v.toString)
                 actorsys.shutdown()
           }
-              Await.result(mongoCommitUrls,1 hour)
+              Await.result(mongoCommitUrls,3 hours)
               log.info("Done processing urls!!")
             case Failure(v) =>
               log.info(v.toString)
               actorsys.shutdown()
           }
-          Await.result(commitsF,1 hour)
+          Await.result(commitsF,3 hours)
         case Failure(v) => log.info(v.toString)
           actorsys.shutdown()
 
           }
-      Await.result(issuesF,1 hour)
+      Await.result(issuesF,3 hours)
       log.info("Next DB")
 
   })
