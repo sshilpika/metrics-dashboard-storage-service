@@ -80,7 +80,7 @@ object Boot extends App{
                   log.info("DONE storing commit details and defect density result for "+input(1))
                   // store db names for tracked dbs
                   log.info("Storing tracked Db name for "+input(1))
-                  CommitDensityService.storeRepoName(input(0)+"_"+input(1))
+                  CommitDensityService.storeRepoName(input(0)+"_"+input(1)+"_"+input(2))
 
                 }else{
                   log.info("URL LIST is > 120,000")
