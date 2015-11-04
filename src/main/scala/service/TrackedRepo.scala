@@ -31,7 +31,7 @@ object TrackedRepo {
     dbNames.map(dbName => {
       val repoDetails = dbName.split("_")
       //Issues
-      val IssueDbName = dbName.take(dbName.length-6)+"Issues"
+      val IssueDbName = dbName+"_Issues"
       val IssueDB = db(IssueDbName)
       log.info(IssueDbName)
       val issueCollName = IssueDB.collectionNames().filter(!_.equals("system.indexes")).toList.max
