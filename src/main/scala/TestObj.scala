@@ -24,15 +24,7 @@ object TestObj {
     CommitDensityService.dataForDefectDensity(input(0), input(1), input(2), "month")
     CommitDensityService.storeRepoName(input(0)+"_"+input(1)+"_"+input(2))
     println("done")
-
-    /*resultF.onComplete {
-      case Success(v) => println("Loc done!"+v.compactPrint.length)
-       // actorsys.shutdown()
-      case Failure(v) => println("Loc and range calculations failed")
-        v.printStackTrace()
-        actorsys.shutdown()
-    }
-    Await.result(resultF,1 hour)*/
+    
   }
 
 }
