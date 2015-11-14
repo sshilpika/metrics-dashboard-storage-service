@@ -275,15 +275,12 @@ object CommitDensityService extends ingestionStrategy{
 
     val db = mongoCasbah(user+"_"+repo+"_Issues")
     val collections = db.collectionNames()
-    println("Total No of collections"+collections.size)
     val filteredCol = collections.filter(!_.equals("system.indexes")).filter(!_.contains("system_indexes_defect_density"))
-    println("Filtered collections "+filteredCol.size)
 
     // issues dateRangeList for repo
     val commitCount = filteredCol.flatMap(coll => {
       val eachColl = db(coll)
       val documentLis = eachColl.find().sort(MongoDBObject("date" -> 1)).toList map (y => {
-        //date: String,state: String, created_at: String, closed_at: String
         IssueInfo(y.getAs[String]("date") get, y.getAs[String]("state") get, y.getAs[String]("created_at") get,y.getAs[String]("closed_at") get)
       })
       val startDateForFile = documentLis(0).date
