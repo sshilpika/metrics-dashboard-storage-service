@@ -343,14 +343,12 @@ object CommitDensityService extends ingestionStrategy{
     (start, end)
   }
 
-  def dataForDefectDensity(user: String, repo: String, branch:String, groupBy: String): String ={
+  def dataForMetrics(user: String, repo: String, branch:String, groupBy: String): String ={
 
     log.info("Storing defect density results.")
     val kloc = getKloc(user+"_"+repo+"_"+branch, groupBy)
     val writer = new PrintWriter(new java.io.File("store.txt"))
-    val k = kloc.toList.sortBy(_._1)
-    writer.write(k.toString())
-    writer.close()
+    kloc.toList.sortBy(_._1)
     val defectDensityResult = getIssues(user,repo,branch, groupBy, kloc)
     dbStore(DefectDensity(defectDensityResult, mongoCasbah(user + "_" + repo + "_" + branch+"_1"),groupBy))
     log.info("Defect density results stored.")

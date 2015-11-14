@@ -16,8 +16,8 @@ object TestObj {
 
     println(s"You entered: \nUsername: ${input(0)} \nReponame: ${input(1)} \nBranchname: ${input(2)}\n")
     val timeout = Timeout(1 hour)
-    CommitDensityService.dataForDefectDensity(input(0), input(1), input(2), "week")
-    CommitDensityService.dataForDefectDensity(input(0), input(1), input(2), "month")
+    CommitDensityService.dataForMetrics(input(0), input(1), input(2), "week")
+    CommitDensityService.dataForMetrics(input(0), input(1), input(2), "month")
     CommitDensityService.storeRepoName(input(0)+"_"+input(1)+"_"+input(2))
     println("done")
 

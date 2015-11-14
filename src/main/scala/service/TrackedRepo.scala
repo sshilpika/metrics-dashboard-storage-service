@@ -109,8 +109,8 @@ object TrackedRepo {
 
                         })
                         CommitKLocService.sorSelectedtLoc(repoDetails(0), repoDetails(1), repoDetails(2))
-                        CommitDensityService.dataForDefectDensity(repoDetails(0), repoDetails(1), repoDetails(2), "week")
-                        CommitDensityService.dataForDefectDensity(repoDetails(0), repoDetails(1), repoDetails(2), "month")
+                        CommitDensityService.dataForMetrics(repoDetails(0), repoDetails(1), repoDetails(2), "week")
+                        CommitDensityService.dataForMetrics(repoDetails(0), repoDetails(1), repoDetails(2), "month")
                         log.info("DONE storing commit details and defect density result for "+dbName)
                         // store db names for tracked dbs
                         log.info("Storing tracked Db name: "+dbName)

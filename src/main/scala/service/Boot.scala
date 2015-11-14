@@ -75,8 +75,8 @@ object Boot extends App{
 
                   })
                   CommitKLocService.sortLoc(input(0), input(1), input(2)/*, Option(accessToken_CommitsURL)*/)
-                  CommitDensityService.dataForDefectDensity(input(0), input(1), input(2), "week")
-                  CommitDensityService.dataForDefectDensity(input(0), input(1), input(2), "month")
+                  CommitDensityService.dataForMetrics(input(0), input(1), input(2), "week")
+                  CommitDensityService.dataForMetrics(input(0), input(1), input(2), "month")
                   log.info("DONE storing commit details and defect density result for "+input(1))
                   // store db names for tracked dbs
                   log.info("Storing tracked Db name for "+input(1))
