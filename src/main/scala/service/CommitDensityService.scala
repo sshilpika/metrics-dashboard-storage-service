@@ -324,7 +324,7 @@ object CommitDensityService extends ingestionStrategy{
       IssueSpoilage(y._1.toString, y._2(0)._2.toString,issueSpoilageAcc)
     })
     import SpoilageJProtocol._
-    jsonifyRes.toList.sortBy(_.startDate).toJson
+    jsonifyRes.sortBy(_.startDate).toJson
 
   }
 
