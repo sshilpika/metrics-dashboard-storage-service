@@ -275,7 +275,6 @@ object CommitDensityService extends ingestionStrategy{
 
     val db = mongoCasbah(user+"_"+repo+"_Issues")
     val collections = db.collectionNames()
-    val filteredCol = collections.filter(!_.equals("system.indexes")).filter(!_.contains("system_indexes_defect_density"))
 
     // issues dateRangeList for repo
     val commitCount = filteredCol.flatMap(coll => {
