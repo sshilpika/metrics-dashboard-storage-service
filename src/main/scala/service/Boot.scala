@@ -14,9 +14,9 @@ object Boot extends App{
 
     log.info("Enter 1 or 2 to choose one from the options below:\n1. Issues\n2. Commits\n")
     choice = lines.next()
-  }while(!choice.equals("1") && !choice.equals("2"))
+  }while(!choice.equals("1") && !choice.equals("2") && !choice.equals("3"))
 
-  val metricType = if(choice.toInt ==1) "Issues" else "Commits"
+  val metricType = if(choice.toInt ==1) "Issues" else if(choice.toInt ==2) "Commits" else "Store"
 
   log.info("\nEnter username/reponame/branchname")
   val input = lines.next().split("/")
@@ -48,8 +48,8 @@ object Boot extends App{
                   val stack = scala.collection.mutable.Stack[String]()
                   more_tokens.flatMap(x => stack.push(x))
                   var access_token:String = stack.pop
-
-                  urlGroups map(urlLis => {
+                  log.info("Number of URL groups for processing : "+urlGroups.length)
+                  urlGroups.foreach(urlLis => {
                     log.info(urlLis.length + " length of inner List")
                     val index = urlGroups.indexOf(urlLis)
                     //val access_token_temp = access_token
@@ -69,18 +69,13 @@ object Boot extends App{
 
                     Await.result(f2, 1 hour) // wait for result from storing commit KLOC information
 
-                    log.info("Thread sleep before next call")
-                    if(urlGroups.length>1)
-                      Thread.sleep(2 * 60*1000)
+
+                    if(urlGroups.length>1) {
+                      log.info("Thread sleep before next call")
+                      Thread.sleep(2 * 60 * 1000)
+                    }
 
                   })
-                  CommitKLocService.sortLoc(input(0), input(1), input(2)/*, Option(accessToken_CommitsURL)*/)
-                  CommitDensityService.dataForMetrics(input(0), input(1), input(2), "week")
-                  CommitDensityService.dataForMetrics(input(0), input(1), input(2), "month")
-                  log.info("DONE storing commit details and defect density result for "+input(1))
-                  // store db names for tracked dbs
-                  log.info("Storing tracked Db name for "+input(1))
-                  CommitDensityService.storeRepoName(input(0)+"_"+input(1)+"_"+input(2))
 
                 }else{
                   log.info("URL LIST is > 120,000")

@@ -22,6 +22,11 @@ import concurrent.duration._
 case class IssueState(Open:Int, Close:Int, openCumulative: Int, closedCumulative:Int)
 case class LocIssue(startDate: String, endDate:String,kloc:Double, issues: IssueState)
 case class IssueSpoilage(startDate: String, endDate:String,issueSpoilageResult:Double)
+case class KlocProductivity(startDate: String, endDate:String, kloc:Double, effort:Double, productivity:Double)
+
+object ProductivityJProtocol extends DefaultJsonProtocol{
+  implicit val productivityFormat:RootJsonFormat[KlocProductivity] = jsonFormat(KlocProductivity,"start_date","end_date","kloc", "effort", "productivity")
+}
 
 object SpoilageJProtocol extends DefaultJsonProtocol{
   implicit val spoilageFormat:RootJsonFormat[IssueSpoilage] = jsonFormat(IssueSpoilage,"start_date","end_date","issue_spoilage")
@@ -249,6 +254,7 @@ object CommitDensityService extends ingestionStrategy{
       import java.time.temporal.ChronoUnit
       ChronoUnit.MONTHS.between(zonedStart, zonedNow).toInt + 1
     }
+
     //empty list to iterate and fill with valid values, currently contains dummy values
     val l1 = List.fill(dateRangeLength)(("SD", "ED", 0.0D, (0, 0)))
 
@@ -333,7 +339,7 @@ object CommitDensityService extends ingestionStrategy{
     val db = mongoCasbah(dbName)
     val collections = db.collectionNames()
     val filteredCol = collections.filter(!_.equals("system.indexes")).filter(!_.contains("system_indexes_defect_density"))
-    println("Filtered collections "+filteredCol.size)
+    log.info("Filtered collections "+filteredCol.size)
     val firstCollection = filteredCol.toList.sorted
     val start = Instant.parse(db(firstCollection.head).find().sort(MongoDBObject("date" -> 1)).toList(0).getAs[String]("date").get)
     val end = Instant.parse(db(firstCollection.last).find().sort(MongoDBObject("date" -> -1)).toList(0).getAs[String]("date").get)
@@ -344,8 +350,10 @@ object CommitDensityService extends ingestionStrategy{
 
     log.info("Storing defect density results.")
     val kloc = getKloc(user+"_"+repo+"_"+branch, groupBy)
-    val writer = new PrintWriter(new java.io.File("store.txt"))
+    val writer = new PrintWriter(new java.io.File("store1.txt"))
     kloc.toList.sortBy(_._1)
+    writer.write(kloc.toList.toString())
+    writer.close()
     val defectDensityResult = getIssues(user,repo,branch, groupBy, kloc)
     dbStore(DefectDensity(defectDensityResult, mongoCasbah(user + "_" + repo + "_" + branch+"_1"),groupBy))
     log.info("Defect density results stored.")
@@ -356,8 +364,89 @@ object CommitDensityService extends ingestionStrategy{
 
     dbStore(Spoilage(spoilageResult, mongoCasbah(user + "_" + repo + "_" + branch+"_1"),groupBy))
 
+    log.info("Storing productivity results.")
+    val klocProd = getKlocForProductivity(user+"_"+repo+"_"+branch, groupBy)
+    dbStore(Productivity(klocProd, mongoCasbah(user + "_" + repo + "_" + branch+"_1"),groupBy))
+
 
   }
+
+  //get KLOC for productivity metric
+
+  def getKlocForProductivity(dbName: String, groupBy:String):JsValue ={
+
+    val db = mongoCasbah(dbName)
+    val collections = db.collectionNames()
+    println("Total No of collections"+collections.size)
+    val filteredCol = collections.filter(!_.equals("system.indexes")).filter(!_.contains("system_indexes_defect_density"))
+    println("Filtered collections "+filteredCol.size)
+
+    // commits count for files
+    val commitCount = filteredCol.flatMap(coll =>{
+      val eachColl = db(coll)
+      val documentLis = eachColl.find().sort(MongoDBObject("date"-> 1)).toList map(y => {
+        CommitInfo(y.getAs[String]("date") get,y.getAs[Int]("loc") get,y.getAs[String]("filename") get,y.getAs[Long]("rangeLoc").getOrElse(0L))})
+      val startDateForFile = documentLis(0).date
+      val (inststartDateForFile: Instant, dateRangeList: List[(Instant, Instant, Double, (Int, Int))]) = getDateRangeList(groupBy, startDateForFile)
+
+      var previousLoc = 0
+      val lastDateOfCommit = Instant.parse(documentLis(documentLis.length - 1).date)
+      val finalres = dateRangeList.map(x => {
+        val commitInfoForRange1 = documentLis.filter { dbVals => {
+          val ins = Instant.parse(dbVals.date); ins.isAfter(x._1) && ins.isBefore(x._2)
+        }
+        }.sortBy(_.date)
+        //val effort = Duration.between(Instant.parse(startDateForFile),lastDateOfCommit).toMillis.toDouble
+        val res = if (!commitInfoForRange1.isEmpty) {
+          // if commitsInfo is present within the range
+          val effort = Duration.between(x._1,Instant.parse(commitInfoForRange1.last.date)).toMillis.toDouble
+          val commitInfoForRange = CommitInfo(x._1.toString, previousLoc, "", java.time.Duration.between(x._1, Instant.parse(commitInfoForRange1(0).date)).toMillis / 1000) +:
+            commitInfoForRange1
+          val commitInfoForRange2 = commitInfoForRange.take(commitInfoForRange.length - 1) :+ CommitInfo(commitInfoForRange.last.date, commitInfoForRange.last.loc,
+            commitInfoForRange.last.filename, java.time.Duration.between(Instant.parse(commitInfoForRange.last.date), x._2).toMillis / 1000)
+          previousLoc = commitInfoForRange(commitInfoForRange.length - 1).loc
+          val rangeCalulated = commitInfoForRange2.foldLeft(0L: Long) { (a, commitInf) => a + (commitInf.rangeLoc * commitInf.loc)}
+
+          (x._1, x._2, rangeCalulated.toDouble, effort)
+        } else if (x._1.isAfter(lastDateOfCommit)) {
+          // if the range falls after the last commit for the file
+          val rangeLoc = (documentLis(documentLis.length - 1).loc) * ((java.time.Duration.between(x._1, x._2).toMillis) toDouble) / 1000
+          (x._1, x._2, rangeLoc, 0.0D)
+        } else if (x._1.isAfter(inststartDateForFile) && x._1.isBefore(lastDateOfCommit)) {
+          // if the range falls inside the commits lifetime of the file but is empty
+          val commLis = documentLis.filter { dbVals => {
+            val ins = Instant.parse(dbVals.date); ins.isBefore(x._1)
+          }
+          }
+          val rangeLoc = (commLis.sortBy(_.date).reverse(0).loc) * ((java.time.Duration.between(x._1, x._2).toMillis) toDouble) / 1000
+
+          (x._1, x._2, rangeLoc, 0.0D)
+        } else {
+          (x._1, x._2, 0.0D, 0.0D)
+        }
+        res
+      })
+      finalres
+
+    }).toList
+    val unsortedRange = commitCount.groupBy(_._1) map(y => (y._1,{
+      val rangeLoc = y._2.foldLeft(0D)((acc,z) => acc+z._3)
+      val effort = y._2.foldLeft(0D)((acc,z) => acc+z._4)
+      (y._2(0)._2,rangeLoc,effort)
+    }))
+    val klocProd = unsortedRange.toList.sortBy(_._1).map(x => {
+      val moduleSize = x._2._2/(Duration.between(x._1,x._2._1).toMillis)
+      val prod = if(x._2._3 != 0) moduleSize/x._2._3 else 0
+      KlocProductivity(x._1.toString, x._2._1.toString, moduleSize, x._2._3, prod)
+    })
+
+    import ProductivityJProtocol._
+    klocProd.toJson
+
+
+  }
+
+
 
   def storeRepoName(docName: String): String={
     dbStore(RepoNames(mongoCasbah("GitTracking"),docName))

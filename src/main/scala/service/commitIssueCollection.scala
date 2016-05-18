@@ -54,6 +54,16 @@ object commitIssueCollection extends ingestionStrategy with Ingestion {
         }) flatMap(nextUrl => nextUrl.map(page =>{
           this.apply(user,repo,branch,metricType,accessToken,None,Option(page),"")
         }).getOrElse(Future("Issues for "+repo+"  Saved in DB")))
+
+      case "Store" =>
+        CommitKLocService.sortLoc(user, repo, branch)
+        CommitDensityService.dataForMetrics(user, repo, branch, "week")
+        CommitDensityService.dataForMetrics(user, repo, branch, "month")
+        log.info("DONE storing commit details and defect density result for "+repo)
+        // store db names for tracked dbs
+        log.info("Storing tracked Db name for "+repo)
+        CommitDensityService.storeRepoName(user+"_"+repo+"_"+branch)
+        Future("Final Metrics results stored in DB")
     }
 
 

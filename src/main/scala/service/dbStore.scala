@@ -50,17 +50,22 @@ object dbStore {
 
     case DefectDensity(defectDensityResult: JsValue, db: MongoDB, groupBy: String) =>
 
-
-        val coll = db("defect_density_"+groupBy)
-        coll.update(MongoDBObject("id" -> "1"),$set("defectDensity" -> defectDensityResult.compactPrint),true,true)
-        //coll.insert(MongoDBObject("defectDensity" -> defectDensityResult.compactPrint))
+      val coll = db("defect_density_"+groupBy)
+      coll.update(MongoDBObject("id" -> "1"),$set("defectDensity" -> defectDensityResult.compactPrint),true,true)
 
       "Defect Density Stored"
+
     case Spoilage(spoilageResult: JsValue, db: MongoDB, groupBy: String) =>
       val coll = db("issue_spoilage_"+groupBy)
       coll.update(MongoDBObject("id" -> "2"), $set("issueSpoilage" -> spoilageResult.compactPrint), true, true)
 
       "Issues Spoilage Stored"
+
+    case Productivity(prod: JsValue, db: MongoDB, groupBy: String) =>
+      val coll = db("productivity_"+groupBy)
+      coll.update(MongoDBObject("id" -> "3"), $set("productivity" -> prod.compactPrint), true, true)
+
+      "Productivity Stored"
 
     case RepoNames(db: MongoDB, docName: String) =>
 

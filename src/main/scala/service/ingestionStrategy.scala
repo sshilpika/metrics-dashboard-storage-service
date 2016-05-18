@@ -21,6 +21,7 @@ case class Issues(issuesList:List[JsValue], db: MongoDB) extends Metric
 case class Commits(commitList:List[JsValue], db: MongoDB) extends Metric
 case class DefectDensity(commitList:JsValue, db: MongoDB, groupBy:String) extends Metric
 case class Spoilage(spoilageResult: JsValue, db:MongoDB, groupBy:String) extends Metric
+case class Productivity(productivity: JsValue, db:MongoDB, groupBy:String) extends Metric
 case class RepoNames(db:MongoDB, docName: String) extends Metric
 
 trait Ingestion {
