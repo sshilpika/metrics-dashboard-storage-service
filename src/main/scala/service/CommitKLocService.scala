@@ -81,12 +81,13 @@ object CommitKLocService extends Ingestion with CommitKlocIngestion{
   def storeCommitKlocInfo(user: String, repo: String, branch: String, accessToken: Option[String], urlList : List[String]): Future[List[String]] ={
 
     val log = Logging(actorsys, getClass)
-    val db = /*mongoClientCasbah(user+"_"+repo+"_"+branch)*/ reactiveMongoDb(user+"_"+repo+"_"+branch)
+    val db = /*mongoClientCasbah1(user+"_"+repo+"_"+branch)*/ reactiveMongoDb(user+"_"+repo+"_"+branch)
     val result = urlList.map(url => {
       //implicit val timeout = timeout(1 hour)
       val gitFileCommitList = getHttpResponse(url,rawHeaderList(accessToken),1 hour)
 
       gitFileCommitList.map(commit => {
+        log.info("GOT THIS FROM GITHUB --->"+commit.entity.data.asString)
           val filesList = commit.entity.data.asString.parseJson.asJsObject.getFields("commit", "files")
           val commitSha = commit.entity.data.asString.parseJson.asJsObject.getFields("sha")(0)
           val date = filesList(0).asJsObject.getFields("committer")(0).asJsObject.getFields("date")(0).compactPrint.replaceAll("\"", "")
@@ -102,7 +103,10 @@ object CommitKLocService extends Ingestion with CommitKlocIngestion{
             val collectionName = if(flen > 55) fname.substring(flen-55)
             else
               fname
-
+            log.info(date+" "+commitSha.compactPrint+" "+loc+" "+filename+" "+fileSha.compactPrint)
+            /*val collection = db.getCollection(collectionName)
+            collection.update(MongoDBObject("date" -> date),$set("date" -> date, "commitSha" -> commitSha.compactPrint,
+              "loc" -> loc, "filename" -> filename, "fileSha" -> fileSha.compactPrint, "sorted"-> false),true,true)*/
             val collection = db.collection[BSONCollection](collectionName)
             // cursor might throw exception
             val selector = BSONDocument("date" -> date)
