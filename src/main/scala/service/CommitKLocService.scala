@@ -103,7 +103,7 @@ object CommitKLocService extends Ingestion with CommitKlocIngestion{
             val collectionName = if(flen > 55) fname.substring(flen-55)
             else
               fname
-            log.info(date+" "+commitSha.compactPrint+" "+loc+" "+filename+" "+fileSha.compactPrint)
+            //log.info(date+" "+commitSha.compactPrint+" "+loc+" "+filename+" "+fileSha.compactPrint)
             /*val collection = db.getCollection(collectionName)
             collection.update(MongoDBObject("date" -> date),$set("date" -> date, "commitSha" -> commitSha.compactPrint,
               "loc" -> loc, "filename" -> filename, "fileSha" -> fileSha.compactPrint, "sorted"-> false),true,true)*/
