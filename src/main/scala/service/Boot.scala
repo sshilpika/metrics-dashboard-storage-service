@@ -89,6 +89,7 @@ object Boot extends App{
             actorsys.shutdown()
         }
         Await.result(f1,1 hour)
+        log.info("Time to sort results...")
       }
      // actorsys.shutdown()
     case Failure(value) => log.info("Ingestion Failed with message: "+value)

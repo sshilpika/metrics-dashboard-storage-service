@@ -86,8 +86,8 @@ object CommitKLocService extends Ingestion with CommitKlocIngestion{
       //implicit val timeout = timeout(1 hour)
       val gitFileCommitList = getHttpResponse(url,rawHeaderList(accessToken),1 hour)
 
-      gitFileCommitList.map(commit => {
-        log.info("GOT THIS FROM GITHUB --->"+commit.entity.data.asString)
+      val resultF = gitFileCommitList.map(commit => {
+        //log.info("GOT THIS FROM GITHUB --->"+commit.entity.data.asString)
           val filesList = commit.entity.data.asString.parseJson.asJsObject.getFields("commit", "files")
           val commitSha = commit.entity.data.asString.parseJson.asJsObject.getFields("sha")(0)
           val date = filesList(0).asJsObject.getFields("committer")(0).asJsObject.getFields("date")(0).compactPrint.replaceAll("\"", "")
@@ -119,6 +119,8 @@ object CommitKLocService extends Ingestion with CommitKlocIngestion{
           })
 
       }) // storage mapping ends for results returned from github
+      Await.result(gitFileCommitList,20 minutes)
+      resultF
     }) // main url list mapping ends
     Future.sequence(result).map(_.flatten)
   }
