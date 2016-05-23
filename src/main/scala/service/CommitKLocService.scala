@@ -112,9 +112,10 @@ object CommitKLocService extends Ingestion with CommitKlocIngestion{
             val selector = BSONDocument("date" -> date)
             val modifier = BSONDocument("$set" -> BSONDocument("date" -> date, "commitSha" -> commitSha.compactPrint,
               "loc" -> loc, "filename" -> filename, "fileSha" -> fileSha.compactPrint, "sorted"-> false))
-            collection.update(selector,modifier,multi=true,upsert = true)
+            val rStat = collection.update(selector,modifier,multi=true,upsert = true)
             /*collection.update(MongoDBObject("date" -> date),$set("date" -> date, "commitSha" -> commitSha.compactPrint,
               "loc" -> loc, "filename" -> filename, "fileSha" -> fileSha.compactPrint),true,true)*/
+            Await.result(rStat, 60 seconds)
             filename
           })
 
